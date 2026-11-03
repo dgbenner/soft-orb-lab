@@ -13,3 +13,7 @@ Settings save in the browser; Copy settings exports them as JSON.
 ## Orb Home (`home.html`)
 
 An experimental version of the danbenner.com homepage where every card is a soft orb in its own colors (picked from the live cards), over a drifting pastel background. Cards flex, lean toward the cursor and glow on hover; clicking splashes color. A Tune button adjusts flex, corner roundness, lean, glow, rim, drift and splash size. Copy and links are taken from the live homepage; danbenner.com itself is untouched.
+
+**Videos:** seven cards play their homepage video inside the orb (`media/home/`, 640px 20-second silent loops re-encoded from assets.danbenner.com, 3.4 MB total). They're copied here because the asset host sends no CORS header, so WebGL can't read its videos directly. Videos only work over http(s); opened as a file, those cards fall back to their colors. Each orb draws in its own pass with eight control points that swell past the card, and videos pause while their card is off screen.
+
+**Text drift:** headlines turn and float in 3D over 38–64 seconds; buttons and tags rock about ±0.7°. Every element has its own timing. Both stop with reduced motion.
