@@ -40,7 +40,7 @@ h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(22px, 3vw, 30p
 .frame { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4 / 5; height: min(calc(100vh - 215px), 900px); max-width: 100%; margin-inline: auto; }
 @media (max-width: 900px) { .frame { height: auto; width: 100%; } }
 @media (min-width: 901px) { .frame { position: sticky; top: 16px; } }
-#orb { display: block; width: 100%; height: 100%; }
+#orb { display: block; width: 100%; height: 100%; cursor: pointer; touch-action: none; }
 .frame-label {
   position: absolute; left: 14px; bottom: 12px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
   color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); pointer-events: none;
@@ -94,7 +94,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
 <main>
   <header>
     <h1>Soft Orb Lab</h1>
-    <p class="lede">A soft, glowing orb. A few hidden control points push and pull its outline, and colored lights drift around inside it, so it flexes and shifts color slowly. Pick a palette or let it cycle through them.</p>
+    <p class="lede">A soft, glowing orb. A few hidden control points push and pull its outline, and colored lights drift around inside it, so it flexes and shifts color slowly. It leans toward your cursor, and clicking splashes a new color where you click. Pick a palette or let it cycle through them.</p>
   </header>
 
   <div class="bench">
@@ -236,6 +236,38 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
         </fieldset>
       </details>
 
+      <details class="sec" data-sec="mouse">
+        <summary>Mouse</summary>
+        <fieldset>
+          <legend class="sr">Mouse</legend>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-lean">Lean toward cursor</label><output id="o-lean" for="c-lean"></output></div>
+            <input type="range" id="c-lean" data-key="lean" min="0" max="1.2" step="0.05">
+            <p class="hint">How much the orb bulges toward the pointer when it's close.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-hoverglow">Hover glow</label><output id="o-hoverglow" for="c-hoverglow"></output></div>
+            <input type="range" id="c-hoverglow" data-key="hoverglow" min="0" max="1" step="0.05">
+            <p class="hint">Brightens the colors right under the pointer.</p>
+          </div>
+          <label class="check"><input type="checkbox" id="c-splash" data-key="splash"> Clicking splashes color</label>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-splashsize">Splash size</label><output id="o-splashsize" for="c-splashsize"></output></div>
+            <input type="range" id="c-splashsize" data-key="splashsize" min="0.15" max="1.2" step="0.05">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-splashtime">Splash fade</label><output id="o-splashtime" for="c-splashtime"></output></div>
+            <input type="range" id="c-splashtime" data-key="splashtime" min="0.5" max="6" step="0.1">
+            <p class="hint">How long a splash takes to spread and fade away.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-splashhue">Splash color turn</label><output id="o-splashhue" for="c-splashhue"></output></div>
+            <input type="range" id="c-splashhue" data-key="splashhue" min="-180" max="180" step="5">
+            <p class="hint">How far around the color wheel each splash is turned from the palette. 0 uses the palette colors as they are.</p>
+          </div>
+        </fieldset>
+      </details>
+
       <details class="sec" data-sec="settings">
         <summary>Settings</summary>
         <fieldset>
@@ -271,6 +303,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     hue: 0, sat: 1, bright: 1, drift: 0.6, mix: 1.7,
     points: 4, size: 0.74, flex: 0.2, speed: 0.6, round: 0.34,
     soft: 0.07, rim: 0.45, rimw: 0.14, glow: 0.5, glowsize: 0.36, vignette: 0.55,
+    lean: 0.6, hoverglow: 0.35, splash: true, splashsize: 0.5, splashtime: 2.5, splashhue: 120,
   };
   const P = Object.assign({}, DEFAULTS);
 
@@ -311,8 +344,11 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     uniform vec3 uBg;
     uniform vec3 uCol[4];
     uniform vec2 uLight[4];
-    uniform vec3 uCtrl[6];      // xy = position, z = radius (0 = unused)
+    uniform vec3 uCtrl[7];      // xy = position, z = radius (0 = unused); the 7th follows the cursor
     uniform float uRound, uSoft, uRim, uRimW, uGlow, uGlowSize, uMix, uVignette, uTime;
+    uniform vec3 uHover;        // xy = cursor, z = hover glow strength (0 when the pointer is away)
+    uniform vec4 uSplash[6];    // xy = click point, z = age 0..1 (>= 1 is unused), w = size
+    uniform vec3 uSplashCol[6];
 
     float smin(float a, float b, float k) {
       float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
@@ -325,7 +361,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
 
       // Outline: the control points' circles melted together.
       float d = 1e3;
-      for (int i = 0; i < 6; i++) {
+      for (int i = 0; i < 7; i++) {
         if (uCtrl[i].z > 0.0) d = smin(d, length(p - uCtrl[i].xy) - uCtrl[i].z, uRound);
       }
 
@@ -336,6 +372,22 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
         c += uCol[j] * w; wsum += w;
       }
       c /= wsum;
+
+      // Hover: a soft brightening where the pointer is.
+      c *= 1.0 + uHover.z * exp(-dot(p - uHover.xy, p - uHover.xy) / 0.06);
+
+      // Clicks: each splash floods its area with a new color, spreading out and fading.
+      vec3 ring = vec3(0.0);
+      for (int k = 0; k < 6; k++) {
+        float age = uSplash[k].z;
+        if (age < 1.0) {
+          float dist = length(p - uSplash[k].xy);
+          float rad = uSplash[k].w * (0.2 + 0.8 * (1.0 - pow(1.0 - age, 3.0)));
+          float fade = pow(1.0 - age, 1.6);
+          c = mix(c, uSplashCol[k], exp(-pow(dist / rad, 2.0)) * fade * 0.85);
+          ring += uSplashCol[k] * exp(-pow((dist - rad) / (0.06 + 0.08 * uSplash[k].w), 2.0)) * fade * 0.22;
+        }
+      }
 
       float inside = 1.0 - smoothstep(-uSoft, uSoft, d);
       // Slightly deeper toward the middle, lit along the rim.
@@ -350,6 +402,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       bg += c * halo;
 
       vec3 col = mix(bg, body, inside);
+      col += ring * (0.35 + 0.65 * inside);
       col = pow(max(col, 0.0), vec3(1.0 / 2.2));
       col += (hash(gl_FragCoord.xy + fract(uTime) * 91.0) - 0.5) / 255.0 * 1.5;   // breaks up banding
       gl_FragColor = vec4(col, 1.0);
@@ -371,7 +424,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   gl.enableVertexAttribArray(aLoc);
   gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
   const U = {};
-  ['uRes', 'uBg', 'uCol', 'uLight', 'uCtrl', 'uRound', 'uSoft', 'uRim', 'uRimW', 'uGlow', 'uGlowSize', 'uMix', 'uVignette', 'uTime']
+  ['uRes', 'uBg', 'uCol', 'uLight', 'uCtrl', 'uRound', 'uSoft', 'uRim', 'uRimW', 'uGlow', 'uGlowSize', 'uMix', 'uVignette', 'uTime', 'uHover', 'uSplash', 'uSplashCol']
     .forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
 
   function resize() {
@@ -410,9 +463,34 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   }
   let lastSwitch = performance.now();
 
+  // ---------- pointer ----------
+  // Pointer position in the shader's coordinates: center 0,0, shorter side spans -1..1, y up.
+  const ptr = { x: 0, y: 0, sx: 0, sy: 0, inside: false, presence: 0 };
+  const splashes = new Array(6).fill(null);
+  const splashBuf = new Float32Array(24), splashColBuf = new Float32Array(18);
+  let splashNext = 0, splashColor = 0;
+  function toOrb(e) {
+    const r = canvas.getBoundingClientRect(), m = Math.min(r.width, r.height);
+    return [(2 * (e.clientX - r.left) - r.width) / m, (r.height - 2 * (e.clientY - r.top)) / m];
+  }
+  canvas.addEventListener('pointermove', (e) => { [ptr.x, ptr.y] = toOrb(e); ptr.inside = true; });
+  canvas.addEventListener('pointerleave', () => (ptr.inside = false));
+  canvas.addEventListener('pointerdown', (e) => {
+    [ptr.x, ptr.y] = toOrb(e); ptr.inside = true;
+    if (!P.splash) return;
+    // Each click takes the next palette color, turned around the color wheel so it stands out.
+    const hexes = paletteHexes(P.palette);
+    const base = hexes[1 + (splashColor++ % 4)];
+    let [h, sat, l] = rgbToHsl(hexToRgb(base));
+    h += (P.hue + P.splashhue) / 360; sat = Math.min(1, sat * P.sat * 1.1);
+    const col = toLin(hslToRgb([h, sat, Math.min(0.75, l)]).map((v) => Math.min(1, v * P.bright)));
+    splashes[splashNext] = { x: ptr.x, y: ptr.y, t0: performance.now(), col };
+    splashNext = (splashNext + 1) % splashes.length;
+  });
+
   // ---------- loop ----------
   let t = 0, last = performance.now();
-  const ctrlBuf = new Float32Array(18), lightBuf = new Float32Array(8), colBuf = new Float32Array(12);
+  const ctrlBuf = new Float32Array(21), lightBuf = new Float32Array(8), colBuf = new Float32Array(12);
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     const slow = reduced() ? 0.15 : 1;
@@ -436,6 +514,25 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       lightBuf[j * 2 + 1] = L.cy * P.size + Math.cos(td * L.fy * 2.5 + L.py) * P.size * 0.6;
     }
     for (let j = 0; j < 4; j++) colBuf.set(shown[j + 1], j * 3);
+
+    // Pointer: the orb leans toward it (a 7th control point between the center and the cursor).
+    const e = Math.min(1, dt * 6);
+    ptr.presence += ((ptr.inside ? 1 : 0) - ptr.presence) * Math.min(1, dt * 3);
+    ptr.sx += (ptr.x - ptr.sx) * e; ptr.sy += (ptr.y - ptr.sy) * e;
+    const reach = Math.hypot(ptr.sx, ptr.sy);
+    const near = Math.max(0, 1 - Math.max(0, reach - P.size) / 0.6);   // fades as the cursor moves far from the orb
+    ctrlBuf[18] = ptr.sx * 0.62; ctrlBuf[19] = ptr.sy * 0.62;
+    ctrlBuf[20] = P.size * 0.5 * P.lean * ptr.presence * near;
+    gl.uniform3f(U.uHover, ptr.sx, ptr.sy, P.hoverglow * ptr.presence);
+
+    for (let k = 0; k < 6; k++) {
+      const sp = splashes[k];
+      const age = sp ? (now - sp.t0) / (P.splashtime * 1000) : 1;
+      splashBuf.set([sp ? sp.x : 0, sp ? sp.y : 0, Math.min(1, age), P.splashsize], k * 4);
+      if (sp) splashColBuf.set(sp.col, k * 3);
+    }
+    gl.uniform4fv(U.uSplash, splashBuf);
+    gl.uniform3fv(U.uSplashCol, splashColBuf);
 
     gl.uniform2f(U.uRes, canvas.width, canvas.height);
     gl.uniform3fv(U.uBg, shown[0]);
@@ -462,6 +559,8 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     points: (v) => v, size: (v) => (+v).toFixed(2), flex: (v) => (+v).toFixed(2), speed: (v) => (+v).toFixed(2), round: (v) => (+v).toFixed(2),
     soft: (v) => (+v).toFixed(3), rim: (v) => (+v).toFixed(2), rimw: (v) => (+v).toFixed(3), glow: (v) => (+v).toFixed(2),
     glowsize: (v) => (+v).toFixed(2), vignette: (v) => Math.round(v * 100) + '%',
+    lean: (v) => (+v).toFixed(2), hoverglow: (v) => (+v).toFixed(2), splashsize: (v) => (+v).toFixed(2),
+    splashtime: (v) => (+v).toFixed(1) + ' s', splashhue: (v) => (v > 0 ? '+' : '') + v + '°',
   };
   const sel = $('#c-palette');
   sel.innerHTML = PALETTES.map((p) => `<option value="${p.id}">${p.name}</option>`).join('') + '<option value="custom">Custom</option>';
