@@ -72,7 +72,7 @@
     varying vec2 vP;
     uniform vec4 uRect;              // center, half size (CSS px, y down)
     uniform vec4 uMeta;              // corner radius, hover, seed, video strength (0 = none)
-    uniform vec3 uPal[4];
+    uniform vec3 uPal[3];            // dominant, accent, accent
     uniform vec3 uCursor;
     uniform float uT, uFlex, uSwell, uLean, uGlow, uRim, uVidAspect;
     uniform sampler2D uVid;
@@ -107,15 +107,14 @@
 
       float inside = 1.0 - smoothstep(-3.0, 3.0, d);
 
-      // Inside color: four lights from the card's own colors drift around.
-      vec3 ic = vec3(0.0); float iw = 0.0;
-      for (int j = 0; j < 4; j++) {
+      // Inside color: the dominant color fills the body; two accents drift through it as smaller pools.
+      vec3 ic = uPal[0]; 
+      for (int j = 1; j < 3; j++) {
         float fj = float(j);
-        vec2 L = vec2(sin(t * (0.19 + 0.05 * fj) + s + fj * 1.7), cos(t * (0.15 + 0.06 * fj) + s * 1.3 + fj * 2.1)) * hs * 0.85;
-        float w = 1.0 / (pow(length(q - L) / m, 1.8) + 0.08);
-        ic += uPal[j] * w; iw += w;
+        vec2 L = vec2(sin(t * (0.19 + 0.05 * fj) + s + fj * 1.7), cos(t * (0.15 + 0.06 * fj) + s * 1.3 + fj * 2.1)) * hs * 0.75;
+        float pool = exp(-dot(q - L, q - L) / (2.0 * pow(m * 0.55, 2.0)));
+        ic = mix(ic, uPal[j], pool * 0.8);
       }
-      ic /= iw;
 
       // Video: fills the body and warps along with it.
       vec3 body = ic;
@@ -192,9 +191,20 @@
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
+  // Three colors per card: the first listed color is dominant, plus the two others that differ most from it.
+  function threeColors(hexes) {
+    const rgb = hexes.map(hexToRgb), dom = rgb[0];
+    const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    const rest = hexes.slice(1).map((h, i) => ({ h, d: dist(rgb[i + 1], dom) })).sort((a, b) => b.d - a.d);
+    return [hexes[0], rest[0].h, (rest[1] || rest[0]).h];
+  }
+  const sampler = document.createElement('canvas');
+  sampler.width = 16; sampler.height = 9;
+  const sctx = sampler.getContext('2d', { willReadFrequently: true });
+
   const cards = [...document.querySelectorAll('.orb')].map((el, i) => {
-    const hex = el.dataset.pal.split(',');
-    const c = { el, hex, pal: hex.map((h) => toLin(hexToRgb(h))), seed: (i * 0.6180339) % 1, hover: 0, splashTurn: 0, vid: null };
+    const hex = threeColors(el.dataset.pal.split(',').map((h) => h.trim()));
+    const c = { el, hex, pal: hex.map((h) => toLin(hexToRgb(h))), seed: (i * 0.6180339) % 1, hover: 0, splashTurn: 0, vid: null, lastSample: 0 };
     if (el.dataset.video) {
       const v = document.createElement('video');
       Object.assign(v, { muted: true, loop: true, playsInline: true, preload: 'auto', src: `media/home/${el.dataset.video}.mp4` });
@@ -233,6 +243,18 @@
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, V.v);
       }
       V.ready = true;
+      // Every half second, the video's average color becomes this card's dominant color (eased).
+      const now = performance.now();
+      if (now - c.lastSample > 500) {
+        c.lastSample = now;
+        sctx.drawImage(V.v, 0, 0, 16, 9);
+        const px = sctx.getImageData(0, 0, 16, 9).data;
+        let rr = 0, gg = 0, bb = 0;
+        for (let k = 0; k < px.length; k += 4) { rr += px[k]; gg += px[k + 1]; bb += px[k + 2]; }
+        const n = px.length / 4;
+        c.vidDom = toLin([rr / n / 255, gg / n / 255, bb / n / 255]);
+      }
+      if (c.vidDom) c.pal[0] = c.pal[0].map((v, k) => v + (c.vidDom[k] - v) * 0.04);
     } catch (e) {
       V.broken = true;   // e.g. opened from a file:// URL, where the browser won't share video pixels
       console.warn('Video unavailable for this card; showing its colors instead.', e.message);
@@ -262,7 +284,7 @@
     ptr.x = e.clientX; ptr.y = e.clientY; ptr.inside = true;
     if (e.target.closest('a, button, input, .tune')) return;
     const card = cards.find((c) => c.el.contains(e.target));
-    const hex = card ? card.hex[1 + (card.splashTurn++ % 3)] : BG_HEX[bgTurn++ % BG_HEX.length];
+    const hex = card ? card.hex[1 + (card.splashTurn++ % 2)] : BG_HEX[bgTurn++ % BG_HEX.length];
     const [h, s, l] = rgbToHsl(hexToRgb(hex));
     const col = toLin(hslToRgb([h + (card ? 0.33 : 0), Math.min(1, s * 1.15 + 0.15), Math.min(0.7, Math.max(0.35, l))]));
     splashes[splashNext] = { x: e.pageX, y: e.pageY, t0: performance.now(), col, r: (card ? 170 : 240) * T.splash };
@@ -270,7 +292,7 @@
   });
 
   // ---------- loop ----------
-  const bgLights = new Float32Array(8), palBuf = new Float32Array(12);
+  const bgLights = new Float32Array(8), palBuf = new Float32Array(9);
   const splashBuf = new Float32Array(32), splashColBuf = new Float32Array(24);
   let t = 0, last = performance.now();
   function frame(now) {
@@ -320,7 +342,7 @@
       const hw = r.width / 2, hh = r.height / 2;
       const hasVid = c.vid && uploadVideo(c);
       if (!hasVid) gl.bindTexture(gl.TEXTURE_2D, blank);
-      for (let j = 0; j < 4; j++) palBuf.set(c.pal[j], j * 3);
+      for (let j = 0; j < 3; j++) palBuf.set(c.pal[j], j * 3);
       gl.uniform4f(ORB.u.uBox, r.left + hw, r.top + hh, hw + MARGIN, hh + MARGIN);
       gl.uniform4f(ORB.u.uRect, r.left + hw, r.top + hh, hw, hh);
       gl.uniform4f(ORB.u.uMeta, Math.min(T.radius, hw, hh), c.hover, c.seed, hasVid ? Math.max(0.001, T.video) : 0);
