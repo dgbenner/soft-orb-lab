@@ -4,10 +4,10 @@
 //      on a quad that extends well past the card so lobes can bleed into neighboring areas
 //   3. click splashes over everything
 (() => {
-  const DEFAULTS = { flex: 26, bleed: 1, radius: 30, lean: 22, glow: 0.8, rim: 0.5, drift: 1, splash: 1, video: 0.85 };
+  const DEFAULTS = { flex: 10, swell: 60, pace: 0.45, radius: 30, lean: 70, glow: 0.8, rim: 0.5, drift: 1, splash: 1, video: 0.85 };
   const T = Object.assign({}, DEFAULTS);
-  try { const s = JSON.parse(localStorage.getItem('orb-home:v2') || 'null'); if (s) for (const k in DEFAULTS) if (typeof s[k] === 'number') T[k] = s[k]; } catch (e) {}
-  const save = () => { try { localStorage.setItem('orb-home:v2', JSON.stringify(T)); } catch (e) {} };
+  try { const s = JSON.parse(localStorage.getItem('orb-home:v3') || 'null'); if (s) for (const k in DEFAULTS) if (typeof s[k] === 'number') T[k] = s[k]; } catch (e) {}
+  const save = () => { try { localStorage.setItem('orb-home:v3', JSON.stringify(T)); } catch (e) {} };
   const rmq = matchMedia('(prefers-reduced-motion: reduce)');
 
   // ---------- colors ----------
@@ -62,7 +62,7 @@
     }`, ['uRes', 'uDpr', 'uT', 'uBase', 'uCol', 'uLight', 'uCursor']);
 
   // 2. One orb. The quad covers the card plus a wide margin; output is premultiplied for blending.
-  const MARGIN = 230;
+  const MARGIN = 200;
   const ORB = program(`
     attribute vec2 a; uniform vec4 uBox; uniform vec2 uView; varying vec2 vP;
     void main() {
@@ -74,7 +74,7 @@
     uniform vec4 uMeta;              // corner radius, hover, seed, video strength (0 = none)
     uniform vec3 uPal[4];
     uniform vec3 uCursor;
-    uniform float uT, uFlex, uBleed, uLean, uGlow, uRim, uVidAspect;
+    uniform float uT, uFlex, uSwell, uLean, uGlow, uRim, uVidAspect;
     uniform sampler2D uVid;
 
     float sdRoundBox(vec2 q, vec2 b, float r) { vec2 d = abs(q) - b + r; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r; }
@@ -86,29 +86,24 @@
       float s = uMeta.z * 6.2831, hov = uMeta.y, t = uT;
       float m = min(hs.x, hs.y);
 
-      // Core body: a slightly inset rounded box with a layered wobble along its edge.
+      // Smooth body: the rounded card with a gentle, low wobble along its edge.
       vec2 un = q / hs;
-      float wob = sin(un.x * 2.2 + t * 0.8 + s) * 0.5 + sin(un.y * 2.7 - t * 0.65 + s * 1.7) * 0.5
-                + sin((un.x - un.y) * 1.6 + t * 1.05 + s * 2.3) * 0.35 + sin((un.x + un.y) * 4.1 - t * 1.3 + s * 0.6) * 0.18;
-      float d = sdRoundBox(q, hs * 0.92, uMeta.x) - wob * uFlex * 0.45;
+      float wob = sin(un.x * 1.8 + t * 0.8 + s) * 0.5 + sin(un.y * 2.2 - t * 0.65 + s * 1.7) * 0.5
+                + sin((un.x - un.y) * 1.3 + t * 1.05 + s * 2.3) * 0.35;
+      float d = sdRoundBox(q, hs, uMeta.x) - wob * uFlex;
 
-      // Eight control points ride around the edge, swelling in and out past it as they go.
-      for (int k = 0; k < 8; k++) {
-        float fk = float(k);
-        float ang = s + fk * 0.785 + t * (0.05 + 0.017 * fk) * (mod(fk, 2.0) * 2.0 - 1.0);
-        vec2 dir = vec2(cos(ang), sin(ang));
-        vec2 onEdge = dir * hs * 0.82;
-        float push = (0.5 + 0.5 * sin(t * (0.21 + 0.04 * fk) + s * 3.0 + fk * 1.9)) * uFlex * 2.2 * uBleed;
-        vec2 cp = onEdge + dir * push;
-        float rad = m * (0.32 + 0.14 * sin(t * (0.17 + 0.03 * fk) + fk * 2.4 + s));
-        d = smin(d, length(q - cp) - rad, 46.0);
-      }
+      // Swell: the whole orb breathes out past its card and back, as one shape, leaning a little further
+      // toward a direction that slowly turns.
+      float breathe = 0.5 - 0.5 * cos(t * 0.21 + s * 2.0);
+      vec2 leanDir = vec2(cos(t * 0.09 + s * 3.1), sin(t * 0.07 + s * 1.9));
+      float side = dot(q / (length(q) + 1.0), leanDir);
+      d -= uSwell * breathe * (0.75 + 0.45 * side);
 
-      // Hover: the orb reaches toward the pointer.
+      // Hover: the orb slowly reaches toward the pointer.
       vec2 cq = uCursor.xy - uRect.xy;
       vec2 dq = q - cq;
-      float near = exp(-dot(dq, dq) / (2.0 * 130.0 * 130.0));
-      d -= uLean * hov * near;
+      float near = exp(-dot(dq, dq) / (2.0 * 240.0 * 240.0));
+      d -= uLean * hov * (0.35 + 0.65 * near);
 
       float inside = 1.0 - smoothstep(-3.0, 3.0, d);
 
@@ -154,7 +149,7 @@
       vec3 outRgb = toGamma(body) * inside + toGamma(ic) * halo;
       float outA = max(inside, halo + shade);
       gl_FragColor = vec4(outRgb, outA) * border;
-    }`, ['uBox', 'uView', 'uRect', 'uMeta', 'uPal', 'uCursor', 'uT', 'uFlex', 'uBleed', 'uLean', 'uGlow', 'uRim', 'uVidAspect', 'uVid']);
+    }`, ['uBox', 'uView', 'uRect', 'uMeta', 'uPal', 'uCursor', 'uT', 'uFlex', 'uSwell', 'uLean', 'uGlow', 'uRim', 'uVidAspect', 'uVid']);
 
   // 3. Splashes
   const SPL = program(FULL_VS, COMMON + `
@@ -280,9 +275,13 @@
   let t = 0, last = performance.now();
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
-    t += dt * (rmq.matches ? 0.15 : 1) * T.drift;
+    t += dt * (rmq.matches ? 0.15 : 1) * T.drift * T.pace;
     resize();
-    ptr.presence += ((ptr.inside ? 1 : 0) - ptr.presence) * Math.min(1, dt * 3);
+    ptr.presence += ((ptr.inside ? 1 : 0) - ptr.presence) * Math.min(1, dt * 0.8);
+    // The orbs follow a slow copy of the pointer, so they drift toward it rather than snap.
+    if (ptr.slowX === undefined || ptr.slowX < -5000) { ptr.slowX = ptr.x; ptr.slowY = ptr.y; }
+    ptr.slowX += (ptr.x - ptr.slowX) * Math.min(1, dt * 0.9);
+    ptr.slowY += (ptr.y - ptr.slowY) * Math.min(1, dt * 0.9);
     const vw = innerWidth, vh = innerHeight;
 
     // 1. background
@@ -303,10 +302,10 @@
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     use(ORB, quadBuf);
     gl.uniform2f(ORB.u.uView, vw, vh);
-    gl.uniform3f(ORB.u.uCursor, ptr.x, ptr.y, ptr.presence);
+    gl.uniform3f(ORB.u.uCursor, ptr.slowX, ptr.slowY, ptr.presence);
     gl.uniform1f(ORB.u.uT, t);
     gl.uniform1f(ORB.u.uFlex, rmq.matches ? T.flex * 0.4 : T.flex);
-    gl.uniform1f(ORB.u.uBleed, T.bleed);
+    gl.uniform1f(ORB.u.uSwell, rmq.matches ? T.swell * 0.3 : T.swell);
     gl.uniform1f(ORB.u.uLean, T.lean);
     gl.uniform1f(ORB.u.uGlow, T.glow);
     gl.uniform1f(ORB.u.uRim, T.rim);
@@ -315,7 +314,8 @@
     for (const c of cards) {
       const r = c.el.getBoundingClientRect();
       const over = ptr.inside && ptr.x > r.left - 20 && ptr.x < r.right + 20 && ptr.y > r.top - 20 && ptr.y < r.bottom + 20;
-      c.hover += ((over ? 1 : 0) - c.hover) * Math.min(1, dt * 5);
+      // Builds over a few seconds and lets go even more slowly.
+      c.hover += ((over ? 1 : 0) - c.hover) * Math.min(1, dt * (over ? 0.45 : 0.3));
       if (r.bottom < -MARGIN || r.top > vh + MARGIN) continue;
       const hw = r.width / 2, hh = r.height / 2;
       const hasVid = c.vid && uploadVideo(c);
@@ -388,7 +388,7 @@
   // ---------- tune panel ----------
   const tune = document.getElementById('tune'), tuneBtn = document.getElementById('tune-btn');
   const inputs = [...tune.querySelectorAll('[data-k]')];
-  const fmt = (k, v) => (['flex', 'radius', 'lean'].includes(k) ? v + ' px' : (+v).toFixed(2));
+  const fmt = (k, v) => (['flex', 'swell', 'radius', 'lean'].includes(k) ? v + ' px' : (+v).toFixed(2));
   function syncTune() { inputs.forEach((i) => { i.value = T[i.dataset.k]; document.getElementById('o-' + i.dataset.k).textContent = fmt(i.dataset.k, T[i.dataset.k]); }); save(); }
   inputs.forEach((i) => i.addEventListener('input', () => { T[i.dataset.k] = parseFloat(i.value); syncTune(); }));
   tuneBtn.addEventListener('click', () => { tune.hidden = !tune.hidden; tuneBtn.setAttribute('aria-expanded', String(!tune.hidden)); });
