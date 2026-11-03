@@ -9,3 +9,7 @@ A soft, glowing orb that flexes and shifts color, drawn by one WebGL fragment sh
 - **Reduced motion:** everything moves at 15% speed and auto-cycle starts off.
 
 Settings save in the browser; Copy settings exports them as JSON.
+
+## Orb Home (`home.html`)
+
+An experimental version of the danbenner.com homepage where every card is a soft orb in its own colors (picked from the live cards), over a drifting pastel background. Cards flex, lean toward the cursor and glow on hover; clicking splashes color. A Tune button adjusts flex, corner roundness, lean, glow, rim, drift and splash size. Copy and links are taken from the live homepage; danbenner.com itself is untouched.

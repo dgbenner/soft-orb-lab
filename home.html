@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orb Home</title>
+<meta name="description" content="An experimental take on the danbenner.com homepage: every case-study card is a soft, flexing orb.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Noto+Sans:wght@400;500;600&display=swap">
+<style>
+:root { --page: #edeef0; --ink: #222a31; --muted: #5d6874; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font-family: "Noto Sans", system-ui, sans-serif; font-size: 14px; line-height: 1.45; }
+#bg { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 0; }
+.page { position: relative; z-index: 1; max-width: 1354px; margin: 0 auto; padding: 22px 16px 90px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; font-size: 12px; color: var(--muted); }
+.topbar a { color: var(--muted); text-decoration: none; border-bottom: 1px solid rgba(0, 0, 0, 0.15); }
+.topbar a:hover { color: var(--ink); }
+
+/* The grid mirrors the danbenner.com homepage */
+.stack { display: grid; gap: 34px; }
+.r1 { display: grid; grid-template-columns: 316fr 1038fr; gap: 30px; }
+.quad { display: grid; gap: 34px; }
+.quad-a { display: grid; grid-template-columns: 575fr 402fr; gap: 30px; }
+.quad-b { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px; }
+.r5 { display: grid; grid-template-columns: 547fr 777fr; gap: 30px; }
+.r5-right { display: grid; gap: 34px; }
+@media (max-width: 1000px) {
+  .r1, .quad-a, .quad-b, .three, .r5 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Cards: the boxes are transparent; the orb behind them is drawn on the canvas */
+.orb {
+  position: relative; min-height: 280px; padding: 28px 30px 24px; border-radius: 24px;
+  display: flex; flex-direction: column; gap: 12px; cursor: pointer; min-width: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.orb.tall { min-height: 595px; }
+.orb.short { min-height: 180px; }
+.orb.mid { min-height: 316px; }
+.orb.testi { min-height: 395px; }
+.orb.dark { color: #fff; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35); }
+.orb.light { color: #1d2429; text-shadow: 0 1px 10px rgba(255, 255, 255, 0.45); }
+.orb h2 {
+  font-family: "Bricolage Grotesque", "Noto Sans", sans-serif; font-weight: 700; font-size: 21.5px; line-height: 1.2;
+  letter-spacing: -0.5px; margin: 0; max-width: 21ch;
+}
+.cta {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 7px; font-size: 11px; letter-spacing: 0.3px;
+  padding: 5px 13px; border-radius: 7px; text-decoration: none; text-shadow: none; transition: transform 0.2s, background 0.2s;
+}
+.dark .cta { background: rgba(255, 255, 255, 0.16); color: #fff; border: 1px solid rgba(255, 255, 255, 0.28); }
+.light .cta { background: rgba(255, 255, 255, 0.6); color: #1d2429; border: 1px solid rgba(0, 0, 0, 0.08); }
+.cta:hover { transform: translateY(-1px); }
+.dark .cta:hover { background: rgba(255, 255, 255, 0.26); }
+.light .cta:hover { background: rgba(255, 255, 255, 0.85); }
+.ctas { display: flex; gap: 8px; flex-wrap: wrap; }
+.tags { margin-top: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.tags span { font-size: 10px; padding: 2px 10px; border-radius: 4px; text-shadow: none; }
+.dark .tags span { background: rgba(255, 255, 255, 0.13); color: rgba(255, 255, 255, 0.86); }
+.light .tags span { background: rgba(255, 255, 255, 0.55); color: #4a5562; }
+:focus-visible { outline: 2px solid #1f6feb; outline-offset: 3px; border-radius: 6px; }
+
+/* Intro card */
+.wordmark { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 25px; letter-spacing: -0.6px; margin-top: auto;
+  background: linear-gradient(90deg, #f3a253, #e8683c); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; }
+.intro h2 { font-size: 21px; }
+.specialties { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 9.5px; letter-spacing: 0.32em; text-transform: uppercase; opacity: 0.85; }
+.intro .ctas { margin-top: auto; }
+
+/* Logos strip */
+.logos { display: flex; align-items: center; gap: 34px; flex-wrap: wrap; margin-top: 6px; }
+.logos img { height: 26px; width: auto; max-width: 120px; object-fit: contain; filter: saturate(0.9); }
+.orb h3 { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 17px; margin: 0; letter-spacing: -0.3px; }
+
+/* Testimonials */
+.quote { font-size: 17px; line-height: 1.45; font-style: italic; max-width: 34ch; margin: 10px 0 0; transition: opacity 0.6s; }
+.who { font-size: 12px; opacity: 0.75; transition: opacity 0.6s; }
+.quote-nav { margin-top: auto; display: flex; gap: 8px; }
+.quote-nav button { font: inherit; font-size: 12px; padding: 4px 11px; border-radius: 7px; cursor: pointer; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0, 0, 0, 0.08); color: inherit; }
+
+/* Certifications + contact */
+.cc { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+@media (max-width: 700px) { .cc { grid-template-columns: 1fr; } }
+.certs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 10px; margin-top: 12px; }
+.certs a { display: grid; justify-items: center; gap: 5px; text-align: center; font-size: 10.5px; font-style: italic; color: inherit; text-decoration: none; }
+.certs img { width: 44px; height: 44px; object-fit: contain; }
+.contact p { margin: 8px 0 0; font-size: 12.5px; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.pills a, .pills button { font: inherit; font-size: 11px; padding: 3px 10px; border-radius: 6px; text-decoration: none; color: #1d2429; background: rgba(255, 255, 255, 0.65); border: 1px solid rgba(0, 0, 0, 0.1); cursor: pointer; text-shadow: none; }
+
+/* Tune panel */
+.tune-btn { position: fixed; right: 18px; bottom: 18px; z-index: 5; font: 500 12px "Noto Sans", sans-serif; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(0, 0, 0, 0.12); background: rgba(255, 255, 255, 0.82); color: var(--ink); cursor: pointer; backdrop-filter: blur(8px); }
+.tune { position: fixed; right: 18px; bottom: 62px; z-index: 5; width: 260px; padding: 14px 16px; border-radius: 14px; background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); display: grid; gap: 10px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12); }
+.tune[hidden] { display: none; }
+.tune label { display: grid; gap: 2px; font-size: 12px; }
+.tune .top { display: flex; justify-content: space-between; }
+.tune output { color: var(--muted); font-variant-numeric: tabular-nums; }
+.tune input[type="range"] { width: 100%; margin: 0; accent-color: #1f6feb; }
+.tune .row { display: flex; gap: 8px; }
+.tune button { font: inherit; font-size: 11.5px; padding: 4px 10px; border-radius: 7px; border: 1px solid rgba(0, 0, 0, 0.12); background: #fff; cursor: pointer; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<div class="page">
+  <div class="topbar">
+    <span>Experiment: the danbenner.com homepage, with every card as a soft orb. Hover to lean, click to splash color.</span>
+    <a href="index.html">Soft Orb Lab</a>
+  </div>
+
+  <main class="stack">
+    <section class="r1">
+      <article class="orb tall dark intro" data-pal="#2a3036,#3b3446,#c48a5f,#3aa86a">
+        <h2>Bridging AI/ML complexity with human needs.</h2>
+        <ul class="specialties">
+          <li>AI Building</li><li>Product Design</li><li>Innovation R&amp;D</li><li>Product Strategy</li>
+          <li>Specialized Domains</li><li>Behavioral Research</li><li>UXMC, CSPO, Mini MBA</li>
+        </ul>
+        <div class="wordmark">danbenner.com</div>
+        <div class="ctas">
+          <a class="cta" href="https://danbenner.com/files/Dan-Benner-Resume.pdf">Resume</a>
+          <a class="cta" href="https://danbenner.com/about.html">About →</a>
+        </div>
+      </article>
+
+      <div class="quad">
+        <div class="quad-a">
+          <article class="orb light" data-pal="#9fe3e8,#c8e9cc,#f3d36b,#e9b38a">
+            <h2>AI triage, shipped at enterprise scale</h2>
+            <a class="cta" href="https://danbenner.com/bestbuy.html">Best Buy Self-Diagnosis →</a>
+            <div class="tags"><span>Conversational Design</span><span>Machine Learning</span><span>Automated Handling</span></div>
+          </article>
+          <article class="orb dark" data-pal="#232327,#2b3a31,#2f8f5a,#4f5966">
+            <h2>See how your AI actually decides</h2>
+            <div class="ctas">
+              <a class="cta" href="https://healthbot-testbench.vercel.app/">Try AI Test Bench →</a>
+              <a class="cta" href="https://healthbot-testbench.vercel.app/eval.html">See Pipeline Eval →</a>
+            </div>
+            <div class="tags"><span>Observability</span><span>Signal Detection</span><span>Governance</span></div>
+          </article>
+        </div>
+        <div class="quad-b">
+          <article class="orb dark" data-pal="#4a3a2e,#7e6a55,#c9a77e,#1f1716">
+            <h2>An AI agent that listens past what people say</h2>
+            <a class="cta" href="https://danbenner.com/stealth.html">Full Case Study →</a>
+            <div class="tags"><span>Conversational Design</span><span>Sentiment Analysis</span><span>Model Definition</span></div>
+          </article>
+          <article class="orb light" data-pal="#b6d7c5,#9cc8b3,#cfe8ef,#2c5a66">
+            <h2>An AI roadmap that pays for itself in data</h2>
+            <div class="ctas"><a class="cta" href="https://danbenner.com/files/Vetavize-AI-Strategy.pdf">AI Strategy.pdf</a></div>
+            <div class="tags"><span>AI Roadmapping</span><span>AI + Systems Strategy</span><span>Feedback Architecture</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="three">
+      <article class="orb dark" data-pal="#1d2a2e,#3e5559,#8a96a0,#e2bd3f">
+        <h2>A 350,000-person company that didn't understand its own front line</h2>
+        <a class="cta" href="https://danbenner.com/ey.html">View EY Project →</a>
+        <div class="tags"><span>Organizational Strategy</span><span>Discovery</span><span>Behavioral Research</span></div>
+      </article>
+      <article class="orb dark" data-pal="#1255b1,#389edb,#0f3150,#7fd0ff">
+        <h2>A robotic surgery training platform surgeons worked around</h2>
+        <a class="cta" href="https://danbenner.com/surgical.html">Intuitive Surgical →</a>
+        <div class="tags"><span>Strategy</span><span>Discovery</span><span>Product Roadmapping</span></div>
+      </article>
+      <article class="orb dark" data-pal="#547cad,#7d86a5,#c7a28c,#2f3a52">
+        <h2>The sales an autonomous delivery company didn't know it was losing</h2>
+        <a class="cta" href="https://danbenner.com/droneup.html">DroneUp + Walmart →</a>
+        <div class="tags"><span>Growth</span><span>Product Ownership</span><span>Research Ops</span></div>
+      </article>
+    </section>
+
+    <article class="orb short light" data-pal="#ffffff,#e4f1e2,#dde9f4,#f3e8dc">
+      <h3>Health Care</h3>
+      <div class="logos">
+        <img src="https://assets.danbenner.com/img/00_home_images/industry%20experience%20%20logos/abbott.svg" alt="Abbott">
+        <img src="https://assets.danbenner.com/img/00_home_images/industry%20experience%20%20logos/greenway.svg" alt="Greenway">
+        <img src="https://assets.danbenner.com/img/00_home_images/industry%20experience%20%20logos/intellivisit.svg" alt="IntelliVisit">
+        <img src="https://assets.danbenner.com/img/00_home_images/industry%20experience%20%20logos/kaiser.svg" alt="Kaiser Permanente">
+        <img src="https://assets.danbenner.com/img/00_home_images/industry%20experience%20%20logos/metlife.svg" alt="MetLife">
+        <img src="https://assets.danbenner.com/img/00_home_images/industry%20experience%20%20logos/patterson.svg" alt="Patterson Dental">
+        <img src="https://assets.danbenner.com/img/00_home_images/industry%20experience%20%20logos/pointclickcare.svg" alt="PointClickCare">
+      </div>
+    </article>
+
+    <section class="three">
+      <article class="orb dark" data-pal="#050606,#16201a,#285333,#3c7a4b">
+        <h2>Easier for newcomers, unchanged for experts</h2>
+        <a class="cta" href="https://danbenner.com/nagios.html">See Nagios Project →</a>
+        <div class="tags"><span>Information Architecture</span><span>Research</span></div>
+      </article>
+      <article class="orb light" data-pal="#acd89d,#78aa5f,#d2ecc6,#3b693a">
+        <h2>Intranet strategy, handed to a team who could run it</h2>
+        <a class="cta" href="https://danbenner.com/chs.html">See CHS Discovery →</a>
+        <div class="tags"><span>Strategy</span><span>Discovery</span></div>
+      </article>
+      <article class="orb dark" data-pal="#0c0d1a,#2b3350,#8a6f6a,#3e4a6b">
+        <h2>AI that preps interpreters, tested with interpreters</h2>
+        <a class="cta" href="https://danbenner.com/kudo.html">See KUDO Project →</a>
+        <div class="tags"><span>Natural Language Processing</span><span>Research Ops</span></div>
+      </article>
+    </section>
+
+    <section class="r5">
+      <article class="orb testi light" data-pal="#ffffff,#eef0f4,#f5ece5,#e5eef5">
+        <h3>Testimonials</h3>
+        <p class="quote" id="quote"></p>
+        <div class="who" id="who"></div>
+        <div class="quote-nav">
+          <button type="button" id="q-prev" aria-label="Previous testimonial">‹</button>
+          <button type="button" id="q-next" aria-label="Next testimonial">›</button>
+        </div>
+      </article>
+      <div class="r5-right">
+        <article class="orb short dark" data-pal="#073050,#07599b,#2a7fa8,#e3a14a">
+          <h2>The checklist between a rig and the coastline</h2>
+          <a class="cta" href="https://danbenner.com/bp.html">View BP Blueprinting Project →</a>
+          <div class="tags"><span>Systems Thinking</span><span>Service Design</span></div>
+        </article>
+        <article class="orb short dark" data-pal="#011316,#011e80,#336fe9,#7fc4ff">
+          <h2>Experimental work with AI</h2>
+          <a class="cta" href="https://danbenner.com/ai.html">See Prototypes →</a>
+          <div class="tags"><span>AI Building</span><span>Rapid Prototyping</span></div>
+        </article>
+      </div>
+    </section>
+
+    <article class="orb mid light" data-pal="#ffffff,#f1eff6,#ece6f6,#e6f2ec">
+      <div class="cc">
+        <div>
+          <h3>Certifications</h3>
+          <div class="certs">
+            <a href="https://assets.danbenner.com/img/09_aboutme/stthomas-mba-certificate.png"><img src="https://assets.danbenner.com/img/09_aboutme/seal-stthomas-mba.jpg" alt="">University of St. Thomas Mini MBA</a>
+            <a href="https://assets.danbenner.com/files/index/elvtr-certification.pdf"><img src="https://assets.danbenner.com/img/09_aboutme/logo-elvtr.png?v=4" alt="">ELVTR AI Design</a>
+            <a href="https://assets.danbenner.com/files/about/nng-ux-certificate-benner.pdf"><img src="https://assets.danbenner.com/img/seal-nng.png" alt="">NN/Group Master Certification</a>
+            <a href="https://assets.danbenner.com/files/about/nng-ux-certificate-benner.pdf"><img src="https://assets.danbenner.com/img/09_aboutme/seal-nng-specialty.svg" alt="">NN/Group Specialty Certifications</a>
+            <a href="https://assets.danbenner.com/files/about/pmp-certificate-of-completion.pdf"><img src="https://assets.danbenner.com/img/09_aboutme/seal-pmp-300.png" alt="">PMP Trained</a>
+            <a href="https://bcert.me/bc/html/show-badge.html?b=jttbpsao"><img src="https://assets.danbenner.com/img/09_aboutme/seal-cspo.jpg" alt="">Scrum Alliance Product Owner</a>
+            <a href="https://bcert.me/bc/html/show-badge.html?b=qoxpnkmy"><img src="https://assets.danbenner.com/img/09_aboutme/seal-csm.jpg" alt="">Scrum Alliance Scrum Master</a>
+            <a href="https://creativecircus.edu/"><img src="https://assets.danbenner.com/img/09_aboutme/creativecircus.png" alt="">The Creative Circus Art Direction</a>
+          </div>
+        </div>
+        <div class="contact">
+          <h3>Contact + Downloads</h3>
+          <p>Dan Benner<br>Saint Paul, Minnesota (Central Time)</p>
+          <div class="pills">
+            <button type="button" id="copy-email">benner.dan@gmail.com · Copy</button>
+            <a href="https://danbenner.com/files/Dan-Benner-Resume.pdf">Resume</a>
+            <a href="https://www.linkedin.com/in/danbenner/">LinkedIn</a>
+            <a href="https://github.com/dgbenner">GitHub</a>
+            <a href="https://assets.danbenner.com/files/index/03-ai-assisted-engineering-stack.pdf">AI Toolkit</a>
+            <a href="https://assets.danbenner.com/files/about/uxtoolkits.pdf">UX Toolkit</a>
+            <a href="https://assets.danbenner.com/files/about/my-journey.pdf">My Journey</a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+</div>
+
+<button type="button" class="tune-btn" id="tune-btn" aria-expanded="false" aria-controls="tune">Tune</button>
+<div class="tune" id="tune" hidden role="region" aria-label="Tune the orbs">
+  <label><span class="top">Flex <output id="o-flex"></output></span><input type="range" data-k="flex" min="0" max="30" step="1"></label>
+  <label><span class="top">Corner roundness <output id="o-radius"></output></span><input type="range" data-k="radius" min="10" max="70" step="1"></label>
+  <label><span class="top">Lean toward cursor <output id="o-lean"></output></span><input type="range" data-k="lean" min="0" max="50" step="1"></label>
+  <label><span class="top">Glow <output id="o-glow"></output></span><input type="range" data-k="glow" min="0" max="1.5" step="0.05"></label>
+  <label><span class="top">Rim light <output id="o-rim"></output></span><input type="range" data-k="rim" min="0" max="1" step="0.05"></label>
+  <label><span class="top">Color drift <output id="o-drift"></output></span><input type="range" data-k="drift" min="0" max="2" step="0.05"></label>
+  <label><span class="top">Splash size <output id="o-splash"></output></span><input type="range" data-k="splash" min="0.4" max="2" step="0.05"></label>
+  <div class="row"><button type="button" id="t-copy">Copy settings</button><button type="button" id="t-reset">Reset</button></div>
+</div>
+
+<script>
+(() => {
+  const DEFAULTS = { flex: 9, radius: 26, lean: 18, glow: 0.8, rim: 0.5, drift: 1, splash: 1 };
+  const T = Object.assign({}, DEFAULTS);
+  try { const s = JSON.parse(localStorage.getItem('orb-home:v1') || 'null'); if (s) for (const k in DEFAULTS) if (typeof s[k] === 'number') T[k] = s[k]; } catch (e) {}
+  const save = () => { try { localStorage.setItem('orb-home:v1', JSON.stringify(T)); } catch (e) {} };
+
+  // ---------- colors ----------
+  const hexToRgb = (h) => { const n = parseInt(h.trim().slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255); };
+  const toLin = (c) => c.map((v) => Math.pow(v, 2.2));
+  function rgbToHsl([r, g, b]) {
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+    if (mx === mn) return [0, 0, l];
+    const d = mx - mn, s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h / 6, s, l];
+  }
+  function hslToRgb([h, s, l]) {
+    if (!s) return [l, l, l];
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const f = (t) => { t = ((t % 1) + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+    return [f(h + 1 / 3), f(h), f(h - 1 / 3)];
+  }
+
+  const cards = [...document.querySelectorAll('.orb')].map((el, i) => ({
+    el, pal: el.dataset.pal.split(',').map((h) => toLin(hexToRgb(h))), hex: el.dataset.pal.split(','),
+    seed: ((i * 0.6180339) % 1), hover: 0, splashTurn: 0,
+  }));
+  // Background: the homepage grey with faint pastel lights drifting through it.
+  const BG_BASE = toLin(hexToRgb('#edeef0'));
+  const BG_COLS = ['#d6edf0', '#e6e0f3', '#f4e5da', '#dcefe2'].map((h) => toLin(hexToRgb(h)));
+  const BG_HEX = ['#7fd0d8', '#a99ae0', '#f0a77a', '#7fc79a'];
+
+  // ---------- WebGL ----------
+  const canvas = document.getElementById('bg');
+  const gl = canvas.getContext('webgl', { antialias: false });
+  const MAX = 10;
+  const VS = 'attribute vec2 a; void main() { gl_Position = vec4(a, 0.0, 1.0); }';
+  const FS = `
+    precision highp float;
+    uniform vec2 uRes; uniform float uDpr, uT;
+    uniform vec3 uBgBase; uniform vec3 uBgCol[4]; uniform vec2 uBgLight[4];
+    uniform int uN;
+    uniform vec4 uRect[${MAX}];      // center x, y, half width, half height (CSS px, y down)
+    uniform vec4 uMeta[${MAX}];      // corner radius, hover 0..1, seed, unused
+    uniform vec3 uPal[${MAX * 4}];
+    uniform vec3 uCursor;            // x, y, presence
+    uniform vec4 uSplash[8];         // x, y, age 0..1 (>= 1 unused), radius px
+    uniform vec3 uSplashCol[8];
+    uniform float uFlex, uLean, uGlow, uRim;
+
+    float sdRoundBox(vec2 q, vec2 b, float r) { vec2 d = abs(q) - b + r; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r; }
+    float hash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+
+    void main() {
+      vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;
+      vec2 vp = uRes / uDpr;
+
+      // Background
+      vec2 u = p / max(vp.x, vp.y);
+      vec3 bc = vec3(0.0); float bw = 0.0;
+      for (int j = 0; j < 4; j++) { float w = 1.0 / (pow(length(u - uBgLight[j]), 1.6) + 0.08); bc += uBgCol[j] * w; bw += w; }
+      vec3 col = mix(uBgBase, bc / bw, 0.7);
+      vec2 cd = p - uCursor.xy;
+      col *= 1.0 + 0.07 * uCursor.z * exp(-dot(cd, cd) / (200.0 * 200.0));
+
+      // Orbs
+      for (int i = 0; i < ${MAX}; i++) {
+        if (i >= uN) break;
+        vec4 R = uRect[i]; vec4 M = uMeta[i];
+        vec2 q = p - R.xy;
+        if (abs(q.x) > R.z + 110.0 || abs(q.y) > R.w + 110.0) continue;
+        float s = M.z * 6.2831, hov = M.y, t = uT;
+        vec2 un = q / R.zw;
+        float wob = sin(un.x * 2.2 + t * 0.8 + s) * 0.5 + sin(un.y * 2.7 - t * 0.65 + s * 1.7) * 0.5 + sin((un.x - un.y) * 1.6 + t * 1.05 + s * 2.3) * 0.35;
+        vec2 cq = uCursor.xy - R.xy;
+        vec2 dq = q - cq;
+        float near = exp(-dot(dq, dq) / (2.0 * 120.0 * 120.0));
+        float d = sdRoundBox(q, R.zw, M.x) - wob * uFlex * (1.0 + 1.1 * hov) - uLean * hov * near;
+
+        // Soft shadow under the orb, like the homepage's card shadow
+        float ds = sdRoundBox(q - vec2(0.0, 12.0), R.zw, M.x);
+        col *= 1.0 - 0.09 * exp(-max(ds, 0.0) / 26.0) * step(0.0, d);
+
+        // Inside: four lights from the card's own colors drift around
+        vec3 ic = vec3(0.0); float iw = 0.0;
+        float sc = min(R.z, R.w);
+        for (int j = 0; j < 4; j++) {
+          float fj = float(j);
+          vec2 L = vec2(sin(t * (0.19 + 0.05 * fj) + s + fj * 1.7), cos(t * (0.15 + 0.06 * fj) + s * 1.3 + fj * 2.1)) * R.zw * 0.85;
+          float w = 1.0 / (pow(length(q - L) / sc, 1.8) + 0.08);
+          ic += uPal[i * 4 + j] * w; iw += w;
+        }
+        ic /= iw;
+        ic *= 1.0 + 0.25 * hov * near;
+
+        float inside = 1.0 - smoothstep(-2.5, 2.5, d);
+        vec3 body = ic * (0.88 + 0.12 * smoothstep(-70.0, 0.0, d));
+        float rim = exp(-pow(min(d, 0.0) / 12.0, 2.0)) * inside;
+        body += ic * rim * uRim * 0.6 + vec3(rim * uRim * 0.07);
+        float halo = exp(-max(d, 0.0) / 22.0) * uGlow * (0.45 + 0.55 * hov) * (1.0 - inside);
+        col = mix(col, ic, clamp(halo * 0.55, 0.0, 1.0));
+        col = mix(col, body, inside);
+      }
+
+      // Click splashes: a flood of new color spreading from the click, with a soft ring
+      for (int k = 0; k < 8; k++) {
+        vec4 S = uSplash[k];
+        if (S.z < 1.0) {
+          float dist = length(p - S.xy);
+          float rad = S.w * (0.2 + 0.8 * (1.0 - pow(1.0 - S.z, 3.0)));
+          float fade = pow(1.0 - S.z, 1.6);
+          col = mix(col, uSplashCol[k], exp(-pow(dist / rad, 2.0)) * fade * 0.7);
+          col += uSplashCol[k] * exp(-pow((dist - rad) / (14.0 + 0.12 * S.w), 2.0)) * fade * 0.18;
+        }
+      }
+
+      col = pow(max(col, 0.0), vec3(1.0 / 2.2));
+      col += (hash(gl_FragCoord.xy + fract(uT) * 91.0) - 0.5) / 255.0 * 1.5;
+      gl_FragColor = vec4(col, 1.0);
+    }`;
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const aLoc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(aLoc); gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+  const U = {};
+  ['uRes', 'uDpr', 'uT', 'uBgBase', 'uBgCol', 'uBgLight', 'uN', 'uRect', 'uMeta', 'uPal', 'uCursor', 'uSplash', 'uSplashCol', 'uFlex', 'uLean', 'uGlow', 'uRim']
+    .forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
+
+  let dpr = 1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
+  }
+
+  // ---------- pointer and clicks ----------
+  const ptr = { x: -9999, y: -9999, inside: false, presence: 0 };
+  addEventListener('pointermove', (e) => { ptr.x = e.clientX; ptr.y = e.clientY; ptr.inside = true; }, { passive: true });
+  document.documentElement.addEventListener('pointerleave', () => (ptr.inside = false));
+  const splashes = new Array(8).fill(null);
+  let splashNext = 0, bgTurn = 0;
+  addEventListener('pointerdown', (e) => {
+    ptr.x = e.clientX; ptr.y = e.clientY; ptr.inside = true;
+    if (e.target.closest('a, button, input, .tune')) return;
+    const card = cards.find((c) => c.el.contains(e.target));
+    // A splash takes the next color from the card (or the background), turned around the color wheel.
+    let hex;
+    if (card) hex = card.hex[1 + (card.splashTurn++ % 3)];
+    else hex = BG_HEX[bgTurn++ % BG_HEX.length];
+    let [h, s, l] = rgbToHsl(hexToRgb(hex));
+    const col = toLin(hslToRgb([h + (card ? 0.33 : 0), Math.min(1, s * 1.15 + 0.15), Math.min(0.7, Math.max(0.35, l))]));
+    splashes[splashNext] = { x: e.pageX, y: e.pageY, t0: performance.now(), col, r: (card ? 170 : 240) * T.splash };
+    splashNext = (splashNext + 1) % splashes.length;
+  });
+
+  // ---------- loop ----------
+  const rmq = matchMedia('(prefers-reduced-motion: reduce)');
+  const rectBuf = new Float32Array(MAX * 4), metaBuf = new Float32Array(MAX * 4), palBuf = new Float32Array(MAX * 12);
+  const bgLightBuf = new Float32Array(8), bgColBuf = new Float32Array(12);
+  const splashBuf = new Float32Array(32), splashColBuf = new Float32Array(24);
+  BG_COLS.forEach((c, j) => bgColBuf.set(c, j * 3));
+  let t = 0, last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    t += dt * (rmq.matches ? 0.15 : 1) * T.drift;
+    resize();
+    ptr.presence += ((ptr.inside ? 1 : 0) - ptr.presence) * Math.min(1, dt * 3);
+
+    // Visible cards, nearest the middle of the screen first
+    const vis = [];
+    for (const c of cards) {
+      const r = c.el.getBoundingClientRect();
+      const over = ptr.inside && ptr.x > r.left - 16 && ptr.x < r.right + 16 && ptr.y > r.top - 16 && ptr.y < r.bottom + 16;
+      c.hover += ((over ? 1 : 0) - c.hover) * Math.min(1, dt * 5);
+      if (r.bottom < -120 || r.top > innerHeight + 120) continue;
+      vis.push({ c, r, dist: Math.abs(r.top + r.height / 2 - innerHeight / 2) });
+    }
+    vis.sort((a, b) => a.dist - b.dist);
+    const n = Math.min(MAX, vis.length);
+    for (let i = 0; i < n; i++) {
+      const { c, r } = vis[i];
+      rectBuf.set([r.left + r.width / 2, r.top + r.height / 2, r.width / 2, r.height / 2], i * 4);
+      metaBuf.set([Math.min(T.radius, r.width / 2, r.height / 2), c.hover, c.seed, 0], i * 4);
+      for (let j = 0; j < 4; j++) palBuf.set(c.pal[j], (i * 4 + j) * 3);
+    }
+    for (let j = 0; j < 4; j++) {
+      bgLightBuf[j * 2] = 0.5 + 0.45 * Math.sin(t * (0.05 + 0.02 * j) + j * 1.9);
+      bgLightBuf[j * 2 + 1] = 0.35 + 0.35 * Math.cos(t * (0.04 + 0.015 * j) + j * 2.7);
+    }
+    for (let k = 0; k < 8; k++) {
+      const sp = splashes[k];
+      const age = sp ? (now - sp.t0) / 2400 : 1;
+      splashBuf.set(sp ? [sp.x - scrollX, sp.y - scrollY, Math.min(1, age), sp.r] : [0, 0, 1, 0], k * 4);
+      if (sp) splashColBuf.set(sp.col, k * 3);
+    }
+
+    gl.uniform2f(U.uRes, canvas.width, canvas.height);
+    gl.uniform1f(U.uDpr, dpr);
+    gl.uniform1f(U.uT, t);
+    gl.uniform3fv(U.uBgBase, BG_BASE);
+    gl.uniform3fv(U.uBgCol, bgColBuf);
+    gl.uniform2fv(U.uBgLight, bgLightBuf);
+    gl.uniform1i(U.uN, n);
+    gl.uniform4fv(U.uRect, rectBuf);
+    gl.uniform4fv(U.uMeta, metaBuf);
+    gl.uniform3fv(U.uPal, palBuf);
+    gl.uniform3f(U.uCursor, ptr.x, ptr.y, ptr.presence);
+    gl.uniform4fv(U.uSplash, splashBuf);
+    gl.uniform3fv(U.uSplashCol, splashColBuf);
+    gl.uniform1f(U.uFlex, rmq.matches ? T.flex * 0.4 : T.flex);
+    gl.uniform1f(U.uLean, T.lean);
+    gl.uniform1f(U.uGlow, T.glow);
+    gl.uniform1f(U.uRim, T.rim);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- testimonials ----------
+  const QUOTES = [
+    ['Dan’s grasp of web development and trends has really allowed us to push the envelope.', 'Zach Kahn, CTO + Product Manager, BI Worldwide'],
+    ['Dan’s design, thinking and responsiveness is great.', 'Hugh MacNiven, Director of Learning Strategy, BI Worldwide'],
+    ['Let me know if you ever need a reference… or if you’re interviewing, I’ll go with you to the interview.', 'Rich Hultman, Senior Innovation Designer and UX Strategist, IBM Watson + Best Buy alum'],
+    ['Dan is one of the most detailed designers I’ve seen. He is instrumental to our product.', 'Robert Plummer, ML Engineer (Stealth AI Startup)'],
+    ['Creative and insightful. Dan is the man! Highly recommended!', 'Andy Kovan, Brand + Creative Director, The Brandon Agency'],
+    ['Dan is always thinking outside the box and bringing fresh, creative ideas.', 'Clive Vang, UI/UX Designer, Truist'],
+  ];
+  let qi = 0;
+  const quoteEl = document.getElementById('quote'), whoEl = document.getElementById('who');
+  function showQuote(i) {
+    qi = (i + QUOTES.length) % QUOTES.length;
+    quoteEl.style.opacity = whoEl.style.opacity = 0;
+    setTimeout(() => { quoteEl.textContent = '“' + QUOTES[qi][0] + '”'; whoEl.textContent = QUOTES[qi][1]; quoteEl.style.opacity = whoEl.style.opacity = ''; }, 250);
+  }
+  document.getElementById('q-next').addEventListener('click', () => showQuote(qi + 1));
+  document.getElementById('q-prev').addEventListener('click', () => showQuote(qi - 1));
+  quoteEl.textContent = '“' + QUOTES[0][0] + '”'; whoEl.textContent = QUOTES[0][1];
+  if (!rmq.matches) setInterval(() => showQuote(qi + 1), 7000);
+
+  document.getElementById('copy-email').addEventListener('click', (e) => {
+    navigator.clipboard?.writeText('benner.dan@gmail.com').then(() => { e.target.textContent = 'Copied'; setTimeout(() => (e.target.textContent = 'benner.dan@gmail.com · Copy'), 1600); });
+  });
+
+  // ---------- tune panel ----------
+  const tune = document.getElementById('tune'), tuneBtn = document.getElementById('tune-btn');
+  const inputs = [...tune.querySelectorAll('[data-k]')];
+  const fmt = (k, v) => (['glow', 'rim', 'drift', 'splash'].includes(k) ? (+v).toFixed(2) : v + ' px');
+  function syncTune() { inputs.forEach((i) => { i.value = T[i.dataset.k]; document.getElementById('o-' + i.dataset.k).textContent = fmt(i.dataset.k, T[i.dataset.k]); }); save(); }
+  inputs.forEach((i) => i.addEventListener('input', () => { T[i.dataset.k] = parseFloat(i.value); syncTune(); }));
+  tuneBtn.addEventListener('click', () => { tune.hidden = !tune.hidden; tuneBtn.setAttribute('aria-expanded', String(!tune.hidden)); });
+  document.getElementById('t-reset').addEventListener('click', () => { Object.assign(T, DEFAULTS); syncTune(); });
+  document.getElementById('t-copy').addEventListener('click', (e) => navigator.clipboard?.writeText(JSON.stringify(T, null, 2)).then(() => { e.target.textContent = 'Copied'; setTimeout(() => (e.target.textContent = 'Copy settings'), 1500); }));
+  syncTune();
+
+  requestAnimationFrame((n) => { last = n; frame(n); });
+  window.__orbHome = { T, cards };
+})();
+</script>
+</body>
+</html>
