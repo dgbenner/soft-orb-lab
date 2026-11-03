@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Soft Orb Lab</title>
+<meta name="description" content="A soft, glowing orb that flexes and shifts color, with palettes to cycle through.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #0e1013;
+  --fg: #e8ebef;
+  --muted: #98a0aa;
+  --line: #262b32;
+  --panel: #15181d;
+  --field: #1c2026;
+  --accent: #7fd8c0;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 1240px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 22px; }
+
+header { display: grid; gap: 6px; }
+h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(22px, 3vw, 30px); letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
+.lede { margin: 0; color: var(--muted); max-width: 66ch; }
+
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+
+.frame { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4 / 5; height: min(calc(100vh - 215px), 900px); max-width: 100%; margin-inline: auto; }
+@media (max-width: 900px) { .frame { height: auto; width: 100%; } }
+@media (min-width: 901px) { .frame { position: sticky; top: 16px; } }
+#orb { display: block; width: 100%; height: 100%; }
+.frame-label {
+  position: absolute; left: 14px; bottom: 12px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); pointer-events: none;
+}
+
+/* Control column: as tall as the frame beside it, scrolls inside */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+@media (min-width: 901px) { .panel { position: sticky; top: 16px; height: var(--frame-h, auto); overflow-y: auto; overscroll-behavior: contain; } }
+@media (max-width: 900px) { .panel { position: sticky; bottom: 0; z-index: 5; max-height: 46vh; overflow-y: auto; box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.4); } }
+
+.quick { display: grid; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.now { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.now .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.now .v { font-family: var(--mono); font-size: 15px; }
+.swatches { display: flex; gap: 6px; }
+.swatches span { flex: 1; height: 14px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.08); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn {
+  font: inherit; font-family: var(--mono); font-size: 12px; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--field); color: var(--fg);
+}
+.btn:hover { border-color: var(--accent); }
+
+.sec { border-bottom: 1px solid var(--line); }
+.sec > summary {
+  list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 6px 0 10px;
+  font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); font-weight: 500;
+}
+.sec > summary::-webkit-details-marker { display: none; }
+.sec > summary::after { content: "+"; font-size: 15px; line-height: 1; }
+.sec[open] > summary::after { content: "\2212"; }
+.sec > summary:hover { color: var(--fg); }
+fieldset { border: 0; margin: 0; padding: 0 0 14px; display: grid; gap: 12px; min-width: 0; }
+.ctl { display: grid; gap: 4px; }
+.ctl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13.5px; }
+.ctl-top output { font-family: var(--mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hint { font-size: 12.5px; color: var(--muted); margin: -2px 0 0; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--field); color: var(--fg); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13.5px; cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+.colors { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.colors label { display: grid; gap: 3px; font-size: 11.5px; color: var(--muted); }
+.colors input { width: 100%; height: 28px; padding: 1px; border: 1px solid var(--line); border-radius: 5px; background: var(--field); cursor: pointer; }
+.status { font-size: 12.5px; color: var(--muted); }
+.panel :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Soft Orb Lab</h1>
+    <p class="lede">A soft, glowing orb. A few hidden control points push and pull its outline, and colored lights drift around inside it, so it flexes and shifts color slowly. Pick a palette or let it cycle through them.</p>
+  </header>
+
+  <div class="bench">
+    <div class="frame" id="frame">
+      <canvas id="orb" aria-hidden="true"></canvas>
+      <p class="sr" id="orb-desc" aria-live="polite"></p>
+      <span class="frame-label" id="frame-label" aria-hidden="true"></span>
+    </div>
+
+    <aside class="panel" aria-label="Orb controls">
+      <div class="quick">
+        <div class="now"><span class="k">Palette</span><span class="v" id="now-name"></span></div>
+        <div class="swatches" id="swatches" aria-hidden="true"></div>
+        <div class="row">
+          <button type="button" class="btn" id="prev">‹ Previous</button>
+          <button type="button" class="btn" id="next">Next ›</button>
+        </div>
+        <label class="check"><input type="checkbox" id="c-cycle" data-key="cycle"> Cycle through all palettes</label>
+      </div>
+
+      <details class="sec" data-sec="palette">
+        <summary>Palette</summary>
+        <fieldset>
+          <legend class="sr">Palette</legend>
+          <div class="ctl">
+            <label for="c-palette" class="ctl-top">Palette</label>
+            <select id="c-palette" data-key="palette"></select>
+          </div>
+          <div class="colors" aria-label="Palette colors">
+            <label for="col-0">Back<input type="color" id="col-0"></label>
+            <label for="col-1">1<input type="color" id="col-1"></label>
+            <label for="col-2">2<input type="color" id="col-2"></label>
+            <label for="col-3">3<input type="color" id="col-3"></label>
+            <label for="col-4">4<input type="color" id="col-4"></label>
+          </div>
+          <p class="hint">Changing a color switches to Custom.</p>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-every">Cycle every</label><output id="o-every" for="c-every"></output></div>
+            <input type="range" id="c-every" data-key="every" min="3" max="30" step="1">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-blend">Blend time</label><output id="o-blend" for="c-blend"></output></div>
+            <input type="range" id="c-blend" data-key="blend" min="0.5" max="10" step="0.5">
+            <p class="hint">How long one palette takes to fade into the next.</p>
+          </div>
+        </fieldset>
+      </details>
+
+      <details class="sec" data-sec="offsets">
+        <summary>Color offsets</summary>
+        <fieldset>
+          <legend class="sr">Color offsets</legend>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-hue">Hue shift</label><output id="o-hue" for="c-hue"></output></div>
+            <input type="range" id="c-hue" data-key="hue" min="-180" max="180" step="1">
+            <p class="hint">Turns every color around the color wheel at once.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-sat">Saturation</label><output id="o-sat" for="c-sat"></output></div>
+            <input type="range" id="c-sat" data-key="sat" min="0" max="1.6" step="0.05">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-bright">Brightness</label><output id="o-bright" for="c-bright"></output></div>
+            <input type="range" id="c-bright" data-key="bright" min="0.4" max="1.6" step="0.05">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-drift">Color drift</label><output id="o-drift" for="c-drift"></output></div>
+            <input type="range" id="c-drift" data-key="drift" min="0" max="2" step="0.05">
+            <p class="hint">How fast the colors inside the orb wander.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-mix">Color edges</label><output id="o-mix" for="c-mix"></output></div>
+            <input type="range" id="c-mix" data-key="mix" min="1" max="6" step="0.1">
+            <p class="hint">Low blends the colors into one wash. High gives each color its own patch.</p>
+          </div>
+        </fieldset>
+      </details>
+
+      <details class="sec" data-sec="shape">
+        <summary>Shape</summary>
+        <fieldset>
+          <legend class="sr">Shape</legend>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-points">Control points</label><output id="o-points" for="c-points"></output></div>
+            <input type="range" id="c-points" data-key="points" min="1" max="6" step="1">
+            <p class="hint">The hidden points that pull the outline around.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-size">Size</label><output id="o-size" for="c-size"></output></div>
+            <input type="range" id="c-size" data-key="size" min="0.3" max="0.9" step="0.01">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-flex">Flex</label><output id="o-flex" for="c-flex"></output></div>
+            <input type="range" id="c-flex" data-key="flex" min="0" max="0.6" step="0.01">
+            <p class="hint">How far the control points wander, so how much the outline bends.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-speed">Flex speed</label><output id="o-speed" for="c-speed"></output></div>
+            <input type="range" id="c-speed" data-key="speed" min="0" max="2" step="0.05">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-round">Roundness</label><output id="o-round" for="c-round"></output></div>
+            <input type="range" id="c-round" data-key="round" min="0.05" max="0.6" step="0.01">
+            <p class="hint">How smoothly the points melt together. Low shows lumps, high is one round body.</p>
+          </div>
+        </fieldset>
+      </details>
+
+      <details class="sec" data-sec="light">
+        <summary>Edge and glow</summary>
+        <fieldset>
+          <legend class="sr">Edge and glow</legend>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-soft">Edge softness</label><output id="o-soft" for="c-soft"></output></div>
+            <input type="range" id="c-soft" data-key="soft" min="0.002" max="0.2" step="0.002">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-rim">Rim light</label><output id="o-rim" for="c-rim"></output></div>
+            <input type="range" id="c-rim" data-key="rim" min="0" max="1.5" step="0.05">
+            <p class="hint">The bright line just inside the edge.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-rimw">Rim width</label><output id="o-rimw" for="c-rimw"></output></div>
+            <input type="range" id="c-rimw" data-key="rimw" min="0.01" max="0.2" step="0.005">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-glow">Outer glow</label><output id="o-glow" for="c-glow"></output></div>
+            <input type="range" id="c-glow" data-key="glow" min="0" max="1.2" step="0.05">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-glowsize">Glow size</label><output id="o-glowsize" for="c-glowsize"></output></div>
+            <input type="range" id="c-glowsize" data-key="glowsize" min="0.05" max="0.8" step="0.01">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-vignette">Vignette</label><output id="o-vignette" for="c-vignette"></output></div>
+            <input type="range" id="c-vignette" data-key="vignette" min="0" max="1" step="0.05">
+            <p class="hint">Darkens the background toward the corners.</p>
+          </div>
+        </fieldset>
+      </details>
+
+      <details class="sec" data-sec="settings">
+        <summary>Settings</summary>
+        <fieldset>
+          <legend class="sr">Settings</legend>
+          <div class="row">
+            <button type="button" class="btn" id="copy">Copy settings</button>
+            <button type="button" class="btn" id="reset">Reset</button>
+          </div>
+          <span class="status" id="status" role="status"></span>
+          <p class="hint">Your settings are saved in this browser. Copy settings copies them as text you can share or paste back in later.</p>
+        </fieldset>
+      </details>
+    </aside>
+  </div>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+
+  // Palettes from the reference screenshots: [background, color 1-4]
+  const PALETTES = [
+    { id: 'lagoon',  name: 'Lagoon',      colors: ['#08a291', '#ef8fa8', '#ffd43c', '#86dcc3', '#f3a873'] },
+    { id: 'coral',   name: 'Coral Reef',  colors: ['#0b9a8b', '#ff4b3a', '#ff8417', '#29d8d2', '#ff5d7d'] },
+    { id: 'sherbet', name: 'Sherbet',     colors: ['#06a088', '#3dffc9', '#ffa22e', '#ff7cbc', '#ffd12b'] },
+    { id: 'violet',  name: 'Violet Hour', colors: ['#3a221f', '#a97cff', '#7d9fff', '#cf9fe0', '#8b5ad8'] },
+    { id: 'glacier', name: 'Glacier',     colors: ['#4e8c7d', '#80f1c9', '#ffffff', '#6ec6ff', '#e0965c'] },
+  ];
+  let custom = PALETTES[0].colors.slice();
+
+  const DEFAULTS = {
+    palette: 'lagoon', cycle: true, every: 8, blend: 4,
+    hue: 0, sat: 1, bright: 1, drift: 0.6, mix: 1.7,
+    points: 4, size: 0.74, flex: 0.2, speed: 0.6, round: 0.34,
+    soft: 0.07, rim: 0.45, rimw: 0.14, glow: 0.5, glowsize: 0.36, vignette: 0.55,
+  };
+  const P = Object.assign({}, DEFAULTS);
+
+  // ---------- color helpers ----------
+  const hexToRgb = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255); };
+  const toLin = (c) => c.map((v) => Math.pow(v, 2.2));
+  function rgbToHsl([r, g, b]) {
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+    if (mx === mn) return [0, 0, l];
+    const d = mx - mn, s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h / 6, s, l];
+  }
+  function hslToRgb([h, s, l]) {
+    if (!s) return [l, l, l];
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const f = (t) => { t = ((t % 1) + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+    return [f(h + 1 / 3), f(h), f(h - 1 / 3)];
+  }
+  // A palette after the Hue / Saturation / Brightness offsets, in linear light.
+  function adjusted(hexes) {
+    return hexes.map((hx) => {
+      let [h, s, l] = rgbToHsl(hexToRgb(hx));
+      h += P.hue / 360; s = Math.min(1, s * P.sat);
+      const rgb = hslToRgb([h, s, l]).map((v) => Math.min(1, v * P.bright));
+      return toLin(rgb);
+    });
+  }
+  const paletteHexes = (id) => (id === 'custom' ? custom : (PALETTES.find((p) => p.id === id) || PALETTES[0]).colors);
+
+  // ---------- WebGL ----------
+  const canvas = $('#orb');
+  const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false });
+  const VS = `attribute vec2 a; void main() { gl_Position = vec4(a, 0.0, 1.0); }`;
+  const FS = `
+    precision highp float;
+    uniform vec2 uRes;
+    uniform vec3 uBg;
+    uniform vec3 uCol[4];
+    uniform vec2 uLight[4];
+    uniform vec3 uCtrl[6];      // xy = position, z = radius (0 = unused)
+    uniform float uRound, uSoft, uRim, uRimW, uGlow, uGlowSize, uMix, uVignette, uTime;
+
+    float smin(float a, float b, float k) {
+      float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+      return mix(b, a, h) - k * h * (1.0 - h);
+    }
+    float hash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+
+    void main() {
+      vec2 p = (gl_FragCoord.xy * 2.0 - uRes) / min(uRes.x, uRes.y);
+
+      // Outline: the control points' circles melted together.
+      float d = 1e3;
+      for (int i = 0; i < 6; i++) {
+        if (uCtrl[i].z > 0.0) d = smin(d, length(p - uCtrl[i].xy) - uCtrl[i].z, uRound);
+      }
+
+      // Inside colors: each light pulls nearby pixels toward its color.
+      vec3 c = vec3(0.0); float wsum = 0.0;
+      for (int j = 0; j < 4; j++) {
+        float w = 1.0 / (pow(length(p - uLight[j]), uMix) + 0.06);   // the + term keeps each light from making a hot spot
+        c += uCol[j] * w; wsum += w;
+      }
+      c /= wsum;
+
+      float inside = 1.0 - smoothstep(-uSoft, uSoft, d);
+      // Slightly deeper toward the middle, lit along the rim.
+      vec3 body = c * (0.82 + 0.18 * smoothstep(-0.35, 0.0, d));
+      float rim = exp(-pow(min(d, 0.0) / uRimW, 2.0)) * inside;
+      body += c * rim * uRim + vec3(rim * uRim * 0.06);
+
+      // Background: palette color, darker toward the corners, with the orb's glow spilling out.
+      float vig = 1.0 - uVignette * smoothstep(0.5, 1.6, length(p * vec2(0.9, 0.8)));
+      vec3 bg = uBg * vig;
+      float halo = exp(-max(d, 0.0) / uGlowSize) * uGlow * (1.0 - inside);
+      bg += c * halo;
+
+      vec3 col = mix(bg, body, inside);
+      col = pow(max(col, 0.0), vec3(1.0 / 2.2));
+      col += (hash(gl_FragCoord.xy + fract(uTime) * 91.0) - 0.5) / 255.0 * 1.5;   // breaks up banding
+      gl_FragColor = vec4(col, 1.0);
+    }`;
+  function compile(type, src) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const aLoc = gl.getAttribLocation(prog, 'a');
+  gl.enableVertexAttribArray(aLoc);
+  gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+  const U = {};
+  ['uRes', 'uBg', 'uCol', 'uLight', 'uCtrl', 'uRound', 'uSoft', 'uRim', 'uRimW', 'uGlow', 'uGlowSize', 'uMix', 'uVignette', 'uTime']
+    .forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
+
+  function resize() {
+    const r = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
+  }
+
+  // ---------- motion ----------
+  const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = () => rmq.matches;
+  // Each control point and each color light follows its own slow looping path.
+  const CTRL = [0, 1, 2, 3, 4, 5].map((i) => ({ fx: 0.31 + i * 0.07, fy: 0.27 + i * 0.05, px: i * 2.1, py: i * 1.3 + 0.7, r: 0.78 - i * 0.05 }));
+  const LIGHTS = [
+    { fx: 0.23, fy: 0.19, px: 0.0, py: 1.4, cx: 0.0, cy: -0.05 },
+    { fx: 0.17, fy: 0.29, px: 2.2, py: 0.3, cx: 0.0, cy: -0.55 },   // tends low: the warm band along the bottom
+    { fx: 0.27, fy: 0.21, px: 4.1, py: 2.6, cx: 0.0, cy: 0.55 },    // tends high: the cool cap on top
+    { fx: 0.19, fy: 0.23, px: 1.1, py: 3.9, cx: 0.3, cy: 0.05 },
+  ];
+
+  // ---------- palette state, with crossfades ----------
+  let shown = adjusted(paletteHexes(P.palette)), from = shown, to = shown, fadeT0 = -1e9, fadeDur = 1;
+  function target(instant) {
+    to = adjusted(paletteHexes(P.palette));
+    if (instant || reduced()) { shown = from = to; fadeT0 = -1e9; return; }
+    from = shown; fadeT0 = performance.now(); fadeDur = P.blend * 1000;
+  }
+  const easeIO = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+  const ids = () => PALETTES.map((p) => p.id);
+  function step(dir) {
+    const list = ids(), i = list.indexOf(P.palette);
+    P.palette = list[((i < 0 ? 0 : i + dir) + list.length) % list.length];
+    lastSwitch = performance.now();
+    sync(); target();
+  }
+  let lastSwitch = performance.now();
+
+  // ---------- loop ----------
+  let t = 0, last = performance.now();
+  const ctrlBuf = new Float32Array(18), lightBuf = new Float32Array(8), colBuf = new Float32Array(12);
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    const slow = reduced() ? 0.15 : 1;
+    t += dt * slow;
+    resize();
+
+    if (P.cycle && !reduced() && now - lastSwitch > P.every * 1000) step(1);
+
+    const k = easeIO(Math.min(1, Math.max(0, (now - fadeT0) / fadeDur)));
+    shown = to.map((c, i) => c.map((v, j) => from[i][j] + (v - from[i][j]) * k));
+
+    for (let i = 0; i < 6; i++) {
+      const c = CTRL[i], on = i < P.points, ts = t * P.speed;
+      ctrlBuf[i * 3] = Math.sin(ts * c.fx * 2.3 + c.px) * P.flex * 0.9;
+      ctrlBuf[i * 3 + 1] = Math.cos(ts * c.fy * 2.1 + c.py) * P.flex;
+      ctrlBuf[i * 3 + 2] = on ? P.size * c.r : 0;
+    }
+    for (let j = 0; j < 4; j++) {
+      const L = LIGHTS[j], td = t * P.drift;
+      lightBuf[j * 2] = L.cx * P.size + Math.sin(td * L.fx * 2.5 + L.px) * P.size * 0.75;
+      lightBuf[j * 2 + 1] = L.cy * P.size + Math.cos(td * L.fy * 2.5 + L.py) * P.size * 0.6;
+    }
+    for (let j = 0; j < 4; j++) colBuf.set(shown[j + 1], j * 3);
+
+    gl.uniform2f(U.uRes, canvas.width, canvas.height);
+    gl.uniform3fv(U.uBg, shown[0]);
+    gl.uniform3fv(U.uCol, colBuf);
+    gl.uniform2fv(U.uLight, lightBuf);
+    gl.uniform3fv(U.uCtrl, ctrlBuf);
+    gl.uniform1f(U.uRound, P.round);
+    gl.uniform1f(U.uSoft, P.soft);
+    gl.uniform1f(U.uRim, P.rim);
+    gl.uniform1f(U.uRimW, P.rimw);
+    gl.uniform1f(U.uGlow, P.glow);
+    gl.uniform1f(U.uGlowSize, P.glowsize);
+    gl.uniform1f(U.uMix, P.mix);
+    gl.uniform1f(U.uVignette, P.vignette);
+    gl.uniform1f(U.uTime, now / 1000);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- controls ----------
+  const fmt = {
+    every: (v) => v + ' s', blend: (v) => (+v).toFixed(1) + ' s', hue: (v) => (v > 0 ? '+' : '') + v + '°',
+    sat: (v) => Math.round(v * 100) + '%', bright: (v) => Math.round(v * 100) + '%', drift: (v) => (+v).toFixed(2), mix: (v) => (+v).toFixed(1),
+    points: (v) => v, size: (v) => (+v).toFixed(2), flex: (v) => (+v).toFixed(2), speed: (v) => (+v).toFixed(2), round: (v) => (+v).toFixed(2),
+    soft: (v) => (+v).toFixed(3), rim: (v) => (+v).toFixed(2), rimw: (v) => (+v).toFixed(3), glow: (v) => (+v).toFixed(2),
+    glowsize: (v) => (+v).toFixed(2), vignette: (v) => Math.round(v * 100) + '%',
+  };
+  const sel = $('#c-palette');
+  sel.innerHTML = PALETTES.map((p) => `<option value="${p.id}">${p.name}</option>`).join('') + '<option value="custom">Custom</option>';
+  const colorInputs = [0, 1, 2, 3, 4].map((i) => $('#col-' + i));
+  const ctls = [...document.querySelectorAll('[data-key]')];
+  const nameOf = (id) => (id === 'custom' ? 'Custom' : (PALETTES.find((p) => p.id === id) || PALETTES[0]).name);
+
+  function sync() {
+    ctls.forEach((c) => {
+      const k = c.dataset.key;
+      if (c.type === 'checkbox') c.checked = !!P[k]; else c.value = P[k];
+      const o = document.getElementById('o-' + k);
+      if (o && fmt[k]) o.textContent = fmt[k](P[k]);
+    });
+    const hexes = paletteHexes(P.palette);
+    colorInputs.forEach((inp, i) => { if (inp.value !== hexes[i]) inp.value = hexes[i]; });
+    $('#swatches').innerHTML = hexes.map((h) => `<span style="background:${h}"></span>`).join('');
+    $('#now-name').textContent = nameOf(P.palette);
+    $('#frame-label').textContent = nameOf(P.palette);
+    $('#orb-desc').textContent = `A soft glowing orb in the ${nameOf(P.palette)} palette.`;
+    save();
+  }
+  const STORE = 'soft-orb-lab:v1';
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, P, { custom }))); } catch (e) {} }
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE) || 'null');
+      if (!s || typeof s !== 'object') return;
+      Object.keys(DEFAULTS).forEach((k) => { if (k in s && typeof s[k] === typeof DEFAULTS[k]) P[k] = s[k]; });
+      if (Array.isArray(s.custom) && s.custom.length === 5) custom = s.custom;
+    } catch (e) {}
+  }
+
+  const COLOR_KEYS = ['hue', 'sat', 'bright'];
+  ctls.forEach((c) => c.addEventListener('input', () => {
+    const k = c.dataset.key;
+    P[k] = c.type === 'checkbox' ? c.checked : c.tagName === 'SELECT' ? c.value : parseFloat(c.value);
+    if (k === 'palette') { lastSwitch = performance.now(); sync(); target(); return; }
+    if (k === 'cycle') lastSwitch = performance.now();
+    sync();
+    if (COLOR_KEYS.includes(k)) target(true);
+  }));
+  colorInputs.forEach((inp) => inp.addEventListener('input', () => {
+    custom = colorInputs.map((x) => x.value);
+    P.palette = 'custom'; P.cycle = false;
+    sync(); target(true);
+  }));
+  $('#next').addEventListener('click', () => step(1));
+  $('#prev').addEventListener('click', () => step(-1));
+
+  const status = $('#status');
+  const flash = (m) => { status.textContent = m; clearTimeout(flash.t); flash.t = setTimeout(() => (status.textContent = ''), 2200); };
+  $('#copy').addEventListener('click', () => {
+    const text = JSON.stringify(Object.assign({}, P, { colors: paletteHexes(P.palette) }), null, 2);
+    const fallback = () => {
+      const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+      ta.remove(); flash(ok ? 'Copied' : 'Couldn’t copy. Your browser blocked the clipboard.');
+    };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => flash('Copied'), fallback); else fallback();
+  });
+  $('#reset').addEventListener('click', () => {
+    Object.assign(P, DEFAULTS); custom = PALETTES[0].colors.slice(); lastSwitch = performance.now();
+    sync(); target(true); flash('Reset to the default settings');
+  });
+
+  // The control column is as tall as the frame beside it, and scrolls inside.
+  const frameEl = $('#frame'), bench = document.querySelector('.bench');
+  new ResizeObserver(() => bench.style.setProperty('--frame-h', frameEl.offsetHeight + 'px')).observe(frameEl);
+
+  load();
+  if (reduced()) P.cycle = false;
+  sync(); target(true);
+  requestAnimationFrame((n) => { last = n; frame(n); });
+
+  window.__orb = { P, step, sync };
+})();
+</script>
+</body>
+</html>
