@@ -52,26 +52,48 @@ h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(18px, 2vw, 24p
   color: rgba(255, 255, 255, 0.86); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); pointer-events: none;
 }
 .preview {
-  position: fixed; left: 20px; bottom: 42px; z-index: 3; width: 168px; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.25); background: #000; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  position: fixed; left: 20px; bottom: 42px; z-index: 3; width: 216px; min-height: 162px; border-radius: 10px; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.25); background: #15181d; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); display: grid;
 }
-.preview video { display: block; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.preview > * { grid-area: 1 / 1; }
+/* Empty state: an unidentifiable figure moving behind a heavy blur. */
+#cam-figure { width: 100%; height: 100%; min-height: 162px; object-fit: cover; filter: blur(4.5px); transform: scale(1.12); }
+.preview video { width: 100%; height: 100%; min-height: 162px; object-fit: cover; transform: scaleX(-1); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+.preview.showing video { opacity: 1; }
+.cam-ui { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; padding: 10px; text-align: center; color: #fff; }
+.cam-icon { width: 20px; height: 15px; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6)); }
+.cam-status { font-size: 11px; line-height: 1.3; text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7); }
+.cam-status:empty { display: none; }
+.cam-actions { display: grid; gap: 5px; justify-items: center; width: 100%; }
+.cam-btn {
+  font: inherit; font-family: var(--mono); font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4); background: rgba(15, 18, 22, 0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.cam-btn:hover { background: rgba(15, 18, 22, 0.8); border-color: #fff; }
+.cam-btn:disabled { opacity: 0.6; cursor: default; }
+.preview :focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.cam-pick { width: 100%; }
+.cam-pick select { font-size: 11.5px; padding: 3px 6px; background: rgba(15, 18, 22, 0.7); color: #fff; border-color: rgba(255, 255, 255, 0.3); }
+/* Camera on: controls step aside to the bottom so you can see yourself. */
+.preview.on .cam-ui { justify-content: flex-end; gap: 5px; padding: 8px; }
+.preview.on .cam-icon { display: none; }
+.preview.on .cam-btn { font-size: 11px; padding: 3px 9px; }
 
 /* Controls float over the orb on the right and scroll inside themselves. */
 .panel {
   position: fixed; right: 16px; top: 16px; z-index: 4; width: 300px; max-height: calc(100vh - 32px); overflow-y: auto; overscroll-behavior: contain;
   background: rgba(21, 24, 29, 0.74); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; padding: 14px 16px; display: grid; gap: 14px; align-content: start; min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; padding: 10px 14px 6px; display: grid; gap: 4px; align-content: start; min-width: 0;
 }
 @media (max-width: 760px) {
   header { right: 16px; left: 16px; top: 14px; max-width: none; }
   .moves, .home-link { display: none; }
   .panel { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 44vh; }
   .frame-label { display: none; }
-  .preview { left: 16px; bottom: auto; top: 52px; width: 104px; }
+  .preview { left: 16px; bottom: auto; top: 52px; width: 168px; }
 }
 
-.quick { display: grid; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.quick { display: grid; gap: 7px; padding-bottom: 9px; border-bottom: 1px solid var(--line); }
 .now { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .now .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .now .v { font-family: var(--mono); font-size: 15px; }
@@ -85,16 +107,17 @@ h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(18px, 2vw, 24p
 .btn:hover { border-color: var(--accent); }
 
 .sec { border-bottom: 1px solid var(--line); }
+.sec:last-of-type { border-bottom: 0; }
 .sec > summary {
-  list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 6px 0 10px;
+  list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 5px 0;
   font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); font-weight: 500;
 }
 .sec > summary::-webkit-details-marker { display: none; }
 .sec > summary::after { content: "+"; font-size: 15px; line-height: 1; }
 .sec[open] > summary::after { content: "\2212"; }
 .sec > summary:hover { color: var(--fg); }
-fieldset { border: 0; margin: 0; padding: 0 0 14px; display: grid; gap: 12px; min-width: 0; }
-.ctl { display: grid; gap: 4px; }
+fieldset { border: 0; margin: 0; padding: 3px 0 10px; display: grid; gap: 9px; min-width: 0; }
+.ctl { display: grid; gap: 2px; }
 .ctl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13.5px; }
 .ctl-top output { font-family: var(--mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .hint { font-size: 12.5px; color: var(--muted); margin: -2px 0 0; }
@@ -135,7 +158,18 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       <canvas id="hands" aria-hidden="true"></canvas>
       <p class="sr" id="orb-desc" aria-live="polite"></p>
       <span class="frame-label" id="frame-label" aria-hidden="true"></span>
-      <div class="preview" id="preview" hidden><video id="cam" muted playsinline aria-label="Your camera, mirrored"></video></div>
+      <div class="preview" id="preview" role="group" aria-label="Camera">
+        <canvas id="cam-figure" width="160" height="120" aria-hidden="true"></canvas>
+        <video id="cam" muted playsinline aria-label="Your camera, mirrored"></video>
+        <div class="cam-ui">
+          <svg class="cam-icon" width="26" height="20" viewBox="0 0 26 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="17" height="14" rx="3"/><path d="M18 8.5 25 4.5v11l-7-4"/></svg>
+          <span class="cam-status" id="cam-status" role="status"></span>
+          <div class="cam-actions">
+            <button type="button" class="cam-btn" id="cam-btn" aria-pressed="false">Use camera</button>
+            <label class="cam-pick" id="cam-pick" hidden><span class="sr">Camera</span><select id="cam-select"></select></label>
+          </div>
+        </div>
+      </div>
     </div>
 
     <aside class="panel" aria-label="Orb controls">
@@ -147,14 +181,6 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
           <button type="button" class="btn" id="next">Next ›</button>
         </div>
         <label class="check"><input type="checkbox" id="c-cycle" data-key="cycle"> Cycle through all palettes</label>
-        <div class="row">
-          <button type="button" class="btn" id="cam-btn" aria-pressed="false">Use camera</button>
-          <span class="status" id="cam-status" role="status"></span>
-        </div>
-        <div class="ctl" id="cam-pick" hidden>
-          <label for="cam-select" class="ctl-top">Camera</label>
-          <select id="cam-select"></select>
-        </div>
       </div>
 
       <details class="sec" data-sec="palette">
@@ -715,11 +741,63 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   const rigs = [newRig(pointers[1], 1), newRig(pointers[2], 2)];
   let landmarker = null, camStream = null, camBusy = false, lastVideoTime = -1, detections = [];
 
+  // The empty state: a figure drawn on a small canvas, swaying, turning and now and then raising a hand.
+  // The blur over it is what makes it a webcam feed of nobody in particular.
+  const figure = $('#cam-figure'), fctx = figure.getContext('2d');
+  let figureOn = false;
+  function drawFigure(ms) {
+    const T = ms / 1000, W = 160, H = 120;
+    const room = fctx.createLinearGradient(0, 0, W, H);
+    room.addColorStop(0, '#39424f'); room.addColorStop(1, '#5a4a3e');
+    fctx.fillStyle = room; fctx.fillRect(0, 0, W, H);
+    fctx.fillStyle = 'rgba(232, 222, 196, 0.5)'; fctx.fillRect(112 + Math.sin(T * 0.1) * 2, 8, 34, 46);   // a window behind them
+    // Big, unmistakable movement: drifting across the frame, leaning in and out, talking with both hands.
+    const drift = Math.sin(T * 0.75) * 24 + Math.sin(T * 1.9) * 5, near = 1 + Math.sin(T * 0.55) * 0.2, bob = Math.sin(T * 2.3) * 3;
+    fctx.save();
+    fctx.translate(80 + drift, 62 + bob);
+    fctx.scale(near, near);
+    fctx.rotate(Math.sin(T * 0.75 + 0.6) * 0.09);
+    const hand = (side, phase, speed) => {
+      const up = Math.max(0, Math.sin(T * speed + phase));
+      const hx = side * (38 + up * 8) + Math.sin(T * 6 + phase) * 7 * up, hy = 50 - up * 52 + Math.cos(T * 4.5 + phase) * 4 * up;
+      fctx.strokeStyle = '#2f3b52'; fctx.lineWidth = 14; fctx.lineCap = 'round';
+      fctx.beginPath(); fctx.moveTo(side * 26, 34); fctx.lineTo(hx, hy + 8); fctx.stroke();
+      fctx.fillStyle = '#d6ab93'; fctx.beginPath(); fctx.ellipse(hx, hy, 9, 10, 0, 0, Math.PI * 2); fctx.fill();
+    };
+    fctx.fillStyle = '#2f3b52';                                        // shoulders and chest
+    fctx.beginPath(); fctx.ellipse(0, 52, 40, 38, 0, 0, Math.PI * 2); fctx.fill();
+    hand(1, 0, 1.15); hand(-1, 2.4, 0.9);
+    const turn = Math.sin(T * 1.1) * 6;
+    fctx.fillStyle = '#d6ab93';                                        // head, turning side to side
+    fctx.beginPath(); fctx.ellipse(turn * 0.5, -6, 15, 18, 0, 0, Math.PI * 2); fctx.fill();
+    fctx.fillStyle = '#2a2320';                                        // hair
+    fctx.beginPath(); fctx.ellipse(-turn * 0.2, -15, 16, 12, 0, 0, Math.PI * 2); fctx.fill();
+    fctx.restore();
+    // Webcam exposure hunting a little, so even the stillest moment reads as live.
+    const flick = 0.05 + 0.05 * Math.sin(T * 7.3) * Math.sin(T * 2.9);
+    fctx.fillStyle = `rgba(255, 240, 220, ${Math.max(0, flick)})`; fctx.fillRect(0, 0, W, H);
+  }
+  function startFigure() {
+    if (figureOn) return;
+    drawFigure(performance.now());
+    if (rmq.matches) return;                                           // reduced motion: one still frame
+    figureOn = true;
+    let lastDraw = 0;
+    const tick = (ms) => {
+      if (camStream && P.preview) { figureOn = false; return; }        // the real camera is showing: stop drawing
+      if (ms - lastDraw > 66) { lastDraw = ms; drawFigure(ms); }      // about 15 fps, like a webcam
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
   function setCamUi() {
     const on = !!camStream;
     camBtn.textContent = on ? 'Stop camera' : 'Use camera';
     camBtn.setAttribute('aria-pressed', String(on));
-    preview.hidden = !(on && P.preview);
+    preview.classList.toggle('on', on);
+    preview.classList.toggle('showing', on && P.preview);
+    if (!(on && P.preview)) startFigure();
   }
   // The browser may remember one camera and stop asking, so the page has its own menu and remembers the pick.
   const CAM_KEY = 'soft-orb-lab:camera', BUILT_IN = /facetime|built.?in|macbook|integrated|virtual|obs\b/i;
@@ -1169,7 +1247,8 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     $('#now-name').textContent = nameOf(P.palette);
     $('#frame-label').textContent = nameOf(P.palette);
     $('#orb-desc').textContent = `A soft glowing orb in the ${nameOf(P.palette)} palette.`;
-    preview.hidden = !(camStream && P.preview);
+    preview.classList.toggle('showing', !!camStream && P.preview);
+    if (!(camStream && P.preview)) startFigure();
     save();
   }
   const STORE = 'soft-orb-lab:v1';
@@ -1218,6 +1297,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   });
 
   load();
+  startFigure();
   if (reduced()) P.cycle = false;
   sync(); target(true);
   requestAnimationFrame((n) => { last = n; frame(n); });
