@@ -337,7 +337,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
             <input type="range" id="c-handsize" data-key="handsize" min="0.3" max="1" step="0.05">
           </div>
           <label class="check"><input type="checkbox" id="c-preview" data-key="preview"> Show camera preview</label>
-          <p class="hint">Point with your index finger to lean. Pinch thumb and finger on the orb and hold to grab it; a quick pinch splashes color. Your camera stays in this browser; nothing is recorded or sent anywhere.</p>
+          <p class="hint">Point with your index finger to lean. Pinch thumb and index finger on the orb and hold to grab it. Tap any fingertip to your thumb to splash color, like a click. Your camera stays in this browser; nothing is recorded or sent anywhere.</p>
         </fieldset>
       </details>
 
@@ -592,7 +592,8 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
 
   // Press and hold: a press on the orb grabs that spot and pulls it. A quick press with no pull is a click, and splashes.
   const grabs = pointers.map(() => ({ down: false, hold: false, ax: 0, ay: 0, dx: 0, dy: 0, vx: 0, vy: 0, t0: 0, x0: 0, y0: 0, moved: false }));
-  const TAP_MS = 320, TAP_MOVE = 0.05, GRAB_MARGIN = 0.14;
+  // Hands get more time and more room than a mouse: a real fingertip tap is slower and never perfectly still.
+  const TAP_MS = 320, TAP_MOVE = 0.05, HAND_TAP_MS = 480, HAND_TAP_MOVE = 0.14, GRAB_MARGIN = 0.14;
   const smin = (a, b, k) => { const h = Math.min(1, Math.max(0, 0.5 + (0.5 * (b - a)) / k)); return b + (a - b) * h - k * h * (1 - h); };
   function warpPoint(x, y, skip) {
     let wx = x, wy = y;
@@ -623,12 +624,12 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   function release(i, x, y) {
     const g = grabs[i];
     if (!g.down) return;
-    if (!g.moved && performance.now() - g.t0 < TAP_MS) splashAt(x, y);
+    if (!g.moved && performance.now() - g.t0 < (i === 0 ? TAP_MS : HAND_TAP_MS)) splashAt(x, y);
     g.down = false; g.hold = false;
   }
   function trackMove(i, x, y) {
     const g = grabs[i];
-    if (g.down && Math.hypot(x - g.x0, y - g.y0) > TAP_MOVE) g.moved = true;
+    if (g.down && Math.hypot(x - g.x0, y - g.y0) > (i === 0 ? TAP_MOVE : HAND_TAP_MOVE)) g.moved = true;
   }
   canvas.addEventListener('pointerdown', (e) => {
     [ptr.x, ptr.y] = toOrb(e); ptr.inside = true;
@@ -656,7 +657,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   const HAND_TIPS = [4, 8, 12, 16, 20];
   const camVideo = $('#cam'), preview = $('#preview'), camBtn = $('#cam-btn'), camStatus = $('#cam-status');
   const handCanvas = $('#hands'), hctx = handCanvas.getContext('2d');
-  const newRig = (pointer, slot) => ({ pointer, slot, lostAt: 0, pts: Array.from({ length: 21 }, () => [0, 0, 0]), seen: false, weight: 0, active: false, pinching: false });
+  const newRig = (pointer, slot) => ({ pointer, slot, lostAt: 0, fingerDown: { 12: 0, 16: 0, 20: 0 }, pts: Array.from({ length: 21 }, () => [0, 0, 0]), seen: false, weight: 0, active: false, pinching: false });
   const rigs = [newRig(pointers[1], 1), newRig(pointers[2], 2)];
   let landmarker = null, camStream = null, camBusy = false, lastVideoTime = -1, detections = [];
 
@@ -797,19 +798,35 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
         // A pinch (sized to the hand) is pressing the mouse down; opening the fingers lets go.
         rig.lostAt = 0;
         const tip = rig.pts[8], thumb = rig.pts[4], palm = Math.max(1, dist3(rig.pts[0], rig.pts[9]));
-        const gap = dist3(tip, thumb) / palm;
+        // Read fingers straight from the camera: the smoothed positions lag enough to miss a quick tap.
+        const rawThumb = landmarkToPx(det[4]), rawPalm = Math.max(1, dist3(landmarkToPx(det[0]), landmarkToPx(det[9])));
+        const gap = dist3(landmarkToPx(det[8]), rawThumb) / rawPalm;
         const [mx, my] = pxToOrb((tip[0] + thumb[0]) / 2, (tip[1] + thumb[1]) / 2);
         if (!rig.pinching && gap < 0.3) { rig.pinching = true; press(rig.slot, mx, my); }
         else if (rig.pinching && gap > 0.5) { rig.pinching = false; release(rig.slot, mx, my); }
         if (rig.pinching) { rig.pointer.x = mx; rig.pointer.y = my; trackMove(rig.slot, mx, my); }
         else [rig.pointer.x, rig.pointer.y] = pxToOrb(tip[0], tip[1]);
         rig.pointer.inside = true;
+        // The other fingers can tap the thumb too. They only click; grabbing stays with the index finger.
+        const nowMs = performance.now();
+        for (const f of [12, 16, 20]) {
+          const fg = dist3(landmarkToPx(det[f]), rawThumb) / rawPalm;
+          if (!rig.fingerDown[f] && fg < 0.3) rig.fingerDown[f] = nowMs;
+          else if (rig.fingerDown[f] && fg > 0.5) {
+            if (!rig.pinching && nowMs - rig.fingerDown[f] < HAND_TAP_MS) {
+              const [fx, fy] = pxToOrb((rig.pts[f][0] + thumb[0]) / 2, (rig.pts[f][1] + thumb[1]) / 2);
+              splashAt(fx, fy);
+            }
+            rig.fingerDown[f] = 0;
+          }
+        }
       } else {
         // The tracker can lose a hand for a moment mid-pull; only let go if it stays lost.
         const now = performance.now();
         if (!rig.lostAt) rig.lostAt = now;
         if (now - rig.lostAt > 300) {
           rig.pointer.inside = false;
+          rig.fingerDown = { 12: 0, 16: 0, 20: 0 };
           if (rig.pinching) { rig.pinching = false; release(rig.slot, rig.pointer.x, rig.pointer.y); }
           if (rig.weight < 0.02) rig.seen = false;
         }
