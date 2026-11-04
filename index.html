@@ -421,7 +421,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     uniform vec2 uLight[4];
     uniform vec3 uCtrl[9];      // xy = position, z = radius (0 = unused); the last 3 follow mouse and hands
     uniform float uRound, uSoft, uRim, uRimW, uGlow, uGlowSize, uMix, uVignette, uTime;
-    uniform vec4 uGrab[3];      // where the grabbed point is now (xy), how far it has been pulled (zw)
+    uniform vec4 uGrab[6];      // where a pulled point is now (xy), how far it has been pulled (zw)
     uniform float uGrabR;       // how wide an area each grab drags with it
     uniform vec4 uNeck;         // midpoint (xy) and direction (zw) between two opposing grabs
     uniform vec2 uNeckAmt;      // how much the middle thins, and how long the thin part is
@@ -448,7 +448,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
         p += perp * uNeckAmt.x * exp(-along * along / (uNeckAmt.y * uNeckAmt.y));
       }
       vec2 warped = p;
-      for (int g = 0; g < 3; g++) {
+      for (int g = 0; g < 6; g++) {
         vec2 D = uGrab[g].zw;
         float m = length(D);
         if (m > 0.0005) {
@@ -483,7 +483,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
         if (age < 1.0) {
           float dist = length(p0 - uSplash[k].xy);
           float rad = uSplash[k].w * (0.2 + 0.8 * (1.0 - pow(1.0 - age, 3.0)));
-          float fade = pow(1.0 - age, 1.6);
+          float fade = pow(1.0 - age, 1.6) * smoothstep(0.0, 0.07, age);   // eases in, even on a quick tap
           c = mix(c, uSplashCol[k], exp(-pow(dist / rad, 2.0)) * fade * 0.85);
           ring += uSplashCol[k] * exp(-pow((dist - rad) / (0.06 + 0.08 * uSplash[k].w), 2.0)) * fade * 0.22;
         }
@@ -591,14 +591,16 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   canvas.addEventListener('pointerleave', () => (ptr.inside = false));
 
   // Press and hold: a press on the orb grabs that spot and pulls it. A quick press with no pull is a click, and splashes.
-  const grabs = pointers.map(() => ({ down: false, hold: false, ax: 0, ay: 0, dx: 0, dy: 0, vx: 0, vy: 0, t0: 0, x0: 0, y0: 0, moved: false }));
+  const grabs = pointers.map(() => ({ down: false, hold: false, slot: null, t0: 0, x0: 0, y0: 0, moved: false }));
+  // Each press opens its own pull, starting from nothing, while earlier pulls keep easing home. So a quick
+  // re-grab never moves what's already on screen; the new pull simply builds on top of it.
+  const pulls = Array.from({ length: 6 }, () => ({ owner: -1, ax: 0, ay: 0, dx: 0, dy: 0, vx: 0, vy: 0 }));
   // Hands get more time and more room than a mouse: a real fingertip tap is slower and never perfectly still.
   const TAP_MS = 320, TAP_MOVE = 0.05, HAND_TAP_MS = 480, HAND_TAP_MOVE = 0.14, GRAB_MARGIN = 0.14;
   const smin = (a, b, k) => { const h = Math.min(1, Math.max(0, 0.5 + (0.5 * (b - a)) / k)); return b + (a - b) * h - k * h * (1 - h); };
-  function warpPoint(x, y, skip) {
+  function warpPoint(x, y) {
     let wx = x, wy = y;
-    grabs.forEach((g, i) => {
-      if (i === skip) return;
+    pulls.forEach((g) => {
       const m = Math.hypot(g.dx, g.dy);
       if (m < 0.0005) return;
       const R = Math.max(P.grabsize, m * 1.25), hx = g.ax + g.dx, hy = g.ay + g.dy;
@@ -608,8 +610,8 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     return [wx, wy];
   }
   // Distance from a point to the orb's edge (negative inside), matching the shader's outline.
-  function orbDistance(x, y, skip) {
-    const [wx, wy] = warpPoint(x, y, skip);
+  function orbDistance(x, y) {
+    const [wx, wy] = warpPoint(x, y);
     let d = 1e3;
     for (let i = 0; i < 6; i++) if (ctrlBuf[i * 3 + 2] > 0) d = smin(d, Math.hypot(wx - ctrlBuf[i * 3], wy - ctrlBuf[i * 3 + 1]) - ctrlBuf[i * 3 + 2], P.round);
     return d;
@@ -617,14 +619,21 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   function press(i, x, y) {
     const g = grabs[i];
     Object.assign(g, { down: true, t0: performance.now(), x0: x, y0: y, moved: false });
-    g.hold = orbDistance(x, y, i) < GRAB_MARGIN;
-    // Anchor so a grab landing on a still-wobbling spot continues from where that spot already is.
-    if (g.hold) { g.ax = x - g.dx; g.ay = y - g.dy; }
+    g.hold = orbDistance(x, y) < GRAB_MARGIN;
+    if (g.hold) {
+      // Use a free pull, or else whichever has the least left to ease home.
+      const size = (q) => Math.hypot(q.dx, q.dy) + Math.hypot(q.vx, q.vy) * 0.2;
+      const free = pulls.filter((q) => q.owner < 0).sort((a, b) => size(a) - size(b))[0];
+      if (!free) { g.hold = false; return; }
+      Object.assign(free, { owner: i, ax: x, ay: y, dx: 0, dy: 0, vx: 0, vy: 0 });
+      g.slot = free;
+    }
   }
   function release(i, x, y) {
     const g = grabs[i];
     if (!g.down) return;
     if (!g.moved && performance.now() - g.t0 < (i === 0 ? TAP_MS : HAND_TAP_MS)) splashAt(x, y);
+    if (g.slot) { g.slot.owner = -1; g.slot = null; }
     g.down = false; g.hold = false;
   }
   function trackMove(i, x, y) {
@@ -888,16 +897,19 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       hctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`; hctx.lineWidth = 1.2; hctx.stroke(links);
       hctx.fillStyle = `rgba(255, 255, 255, ${alpha})`; hctx.fill(joints);
       // The cursor: a ring on the fingertip that fills when you pinch.
-      const tip = rig.pinching ? [(rig.pts[8][0] + rig.pts[4][0]) / 2, (rig.pts[8][1] + rig.pts[4][1]) / 2] : rig.pts[8];
-      hctx.beginPath(); hctx.arc(tip[0], tip[1], rig.pinching ? 7 : 11, 0, Math.PI * 2);
-      hctx.fillStyle = `rgba(255, 255, 255, ${rig.weight * (rig.pinching ? 0.85 : 0.12)})`; hctx.fill();
+      rig.squeeze = (rig.squeeze || 0) + ((rig.pinching ? 1 : 0) - (rig.squeeze || 0)) * 0.25;
+      const q = rig.squeeze, mid = [(rig.pts[8][0] + rig.pts[4][0]) / 2, (rig.pts[8][1] + rig.pts[4][1]) / 2];
+      const tip = [rig.pts[8][0] + (mid[0] - rig.pts[8][0]) * q, rig.pts[8][1] + (mid[1] - rig.pts[8][1]) * q];
+      hctx.beginPath(); hctx.arc(tip[0], tip[1], 11 - 4 * q, 0, Math.PI * 2);
+      hctx.fillStyle = `rgba(255, 255, 255, ${rig.weight * (0.12 + 0.73 * q)})`; hctx.fill();
       hctx.strokeStyle = `rgba(255, 255, 255, ${rig.weight * 0.95})`; hctx.lineWidth = 1.5; hctx.stroke();
     }
   }
 
   // ---------- loop ----------
+  const neck = { n: 0, mx: 0, my: 0, dx: 1, dy: 0, l: 1 };
   let t = 0, last = performance.now();
-  const ctrlBuf = new Float32Array(27), hoverBuf = new Float32Array(9), grabBuf = new Float32Array(12), lightBuf = new Float32Array(8), colBuf = new Float32Array(12);
+  const ctrlBuf = new Float32Array(27), hoverBuf = new Float32Array(9), grabBuf = new Float32Array(24), lightBuf = new Float32Array(8), colBuf = new Float32Array(12);
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     const slow = reduced() ? 0.15 : 1;
@@ -924,39 +936,48 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
 
     // Grabs: each pulled spot is a spring. Held, it follows the hand with a gooey lag; let go, it wobbles home.
     const reducedNow = reduced();
-    grabs.forEach((g, i) => {
-      const pt = pointers[i];
+    pulls.forEach((g, i) => {
+      const held = g.owner >= 0;
       let tx = 0, ty = 0;
-      if (g.hold) {
+      if (held) {
+        const pt = pointers[g.owner];
         tx = pt.x - g.ax; ty = pt.y - g.ay;
         const m = Math.hypot(tx, ty), MAXP = 1.15;
         if (m > MAXP) { const soft = (MAXP + (m - MAXP) * 0.25) / m; tx *= soft; ty *= soft; }   // resists the further it goes
       }
-      const w = g.hold ? 9 : P.grabreturn;
-      const z = g.hold ? 0.85 : (reducedNow ? 1 : 1 - 0.85 * P.grabwobble);
+      const w = held ? 9 : P.grabreturn;
+      const z = held ? 0.85 : (reducedNow ? 1 : 1 - 0.85 * P.grabwobble);
       const h = dt / 4;
       for (let n = 0; n < 4; n++) {
         g.vx += (w * w * (tx - g.dx) - 2 * z * w * g.vx) * h;
         g.vy += (w * w * (ty - g.dy) - 2 * z * w * g.vy) * h;
         g.dx += g.vx * h; g.dy += g.vy * h;
       }
-      if (!g.hold && Math.hypot(g.dx, g.dy) < 0.0005 && Math.hypot(g.vx, g.vy) < 0.002) { g.dx = g.dy = g.vx = g.vy = 0; }
+      if (!held && Math.hypot(g.dx, g.dy) < 0.0005 && Math.hypot(g.vx, g.vy) < 0.002) { g.dx = g.dy = g.vx = g.vy = 0; }
       grabBuf.set([g.ax + g.dx, g.ay + g.dy, g.dx, g.dy], i * 4);
     });
-    // Two spots pulled apart: the middle thins, in proportion to how far they've stretched.
-    const pulled = grabs.filter((g) => Math.hypot(g.dx, g.dy) > 0.02).sort((a, b) => Math.hypot(b.dx, b.dy) - Math.hypot(a.dx, a.dy));
-    let neckN = 0, neckL = 1;
+    // Two spots pulled apart: the middle thins, in proportion to how far they've stretched. All of it eases,
+    // so it fades rather than pops when a pull starts, ends or changes partner.
+    const pulled = pulls.filter((g) => Math.hypot(g.dx, g.dy) > 0.02).sort((a, b) => (b.owner >= 0) - (a.owner >= 0) || Math.hypot(b.dx, b.dy) - Math.hypot(a.dx, a.dy));
+    let neckTarget = 0;
     if (pulled.length >= 2) {
       const a = pulled[0], b = pulled[1];
       const hax = a.ax + a.dx, hay = a.ay + a.dy, hbx = b.ax + b.dx, hby = b.ay + b.dy;
       const sep = Math.hypot(hax - hbx, hay - hby), sep0 = Math.hypot(a.ax - b.ax, a.ay - b.ay);
       if (sep > 0.001) {
-        neckN = Math.min(0.8, Math.max(0, (P.grabneck * (sep - sep0)) / Math.max(sep0, 0.4)));
-        neckL = Math.max(0.2, sep * 0.42);
-        gl.uniform4f(U.uNeck, (hax + hbx) / 2, (hay + hby) / 2, (hbx - hax) / sep, (hby - hay) / sep);
+        neckTarget = Math.min(0.8, Math.max(0, (P.grabneck * (sep - sep0)) / Math.max(sep0, 0.4)));
+        let dirX = (hbx - hax) / sep, dirY = (hby - hay) / sep;
+        if (dirX * neck.dx + dirY * neck.dy < 0) { dirX = -dirX; dirY = -dirY; }
+        const place = neck.n < 0.005 ? 1 : Math.min(1, dt * 7);    // nothing shows yet, so it can settle straight there
+        neck.mx += ((hax + hbx) / 2 - neck.mx) * place; neck.my += ((hay + hby) / 2 - neck.my) * place;
+        neck.dx += (dirX - neck.dx) * place; neck.dy += (dirY - neck.dy) * place;
+        neck.l += (Math.max(0.2, sep * 0.42) - neck.l) * place;
       }
     }
-    gl.uniform2f(U.uNeckAmt, neckN, neckL);
+    neck.n += (neckTarget - neck.n) * Math.min(1, dt * 7);
+    const dirLen = Math.hypot(neck.dx, neck.dy) || 1;
+    gl.uniform4f(U.uNeck, neck.mx, neck.my, neck.dx / dirLen, neck.dy / dirLen);
+    gl.uniform2f(U.uNeckAmt, neck.n, neck.l);
     gl.uniform4fv(U.uGrab, grabBuf);
     gl.uniform1f(U.uGrabR, P.grabsize);
 
@@ -970,8 +991,9 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       pt.sx += (pt.x - pt.sx) * e; pt.sy += (pt.y - pt.sy) * e;
       const reach = Math.hypot(pt.sx, pt.sy);
       const near = Math.max(0, 1 - Math.max(0, reach - P.size) / 0.6);   // fades as the pointer moves far from the orb
-      const leaning = grabs[i].hold ? 0 : 1;   // holding the putty, the pull does the work
-      ctrlBuf.set([pt.sx * 0.62, pt.sy * 0.62, P.size * 0.5 * P.lean * pt.presence * near * leaning], (6 + i) * 3);
+      // Holding the putty, the pull does the work, so the lean eases away (and back) rather than switching.
+      pt.leaning = (pt.leaning ?? 1) + ((grabs[i].hold ? 0 : 1) - (pt.leaning ?? 1)) * Math.min(1, dt * 5);
+      ctrlBuf.set([pt.sx * 0.62, pt.sy * 0.62, P.size * 0.5 * P.lean * pt.presence * near * pt.leaning], (6 + i) * 3);
       hoverBuf.set([pt.sx, pt.sy, P.hoverglow * pt.presence], i * 3);
     });
     gl.uniform3fv(U.uHover, hoverBuf);
@@ -1087,7 +1109,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   sync(); target(true);
   requestAnimationFrame((n) => { last = n; frame(n); });
 
-  window.__orb = { P, step, sync, rigs, splashes, grabs, setFakeHands: (d) => { detections = d; } };
+  window.__orb = { P, step, sync, rigs, splashes, grabs, pulls, setFakeHands: (d) => { detections = d; } };
 })();
 </script>
 </body>
