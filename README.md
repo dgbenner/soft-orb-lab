@@ -1,11 +1,12 @@
 # Soft Orb Lab
 
-A soft, glowing orb that flexes and shifts color, drawn by one WebGL fragment shader. Open `index.html` in a browser; there's no build step.
+A soft, glowing orb that fills the window, flexes and shifts color, drawn by one WebGL fragment shader, with the controls floating over it. Open `index.html` in a browser; there's no build step.
 
 - **Shape:** up to six hidden control points drift on slow looping paths. The outline is their circles melted together (a smooth union), so it bends as they move.
 - **Color:** four colored lights wander inside the orb; each pixel blends toward the nearest ones. A bright rim sits just inside the edge, and a glow spills into the background.
 - **Palettes:** Lagoon, Coral Reef, Sherbet, Violet Hour and Glacier, taken from Dan's reference screenshots (`_source/refs/`), plus Custom. Auto-cycle crossfades through them; Hue shift, Saturation and Brightness offset any palette.
 - **Mouse:** the orb leans toward the cursor (a 7th control point between the center and the pointer) and brightens under it. Clicking drops a color splash: the next palette color, turned around the color wheel, spreading out with a soft ring and fading.
+- **Hands:** Use camera tracks two hands with MediaPipe's Hand Landmarker (loaded from jsDelivr and Google's model store only when turned on; pinned to 0.10.35). Each hand is a wireframe borrowed from Neural Cascade (same 25 bones, six-sided tubes, fingertip domes) and acts like a mouse: the index fingertip leans the orb, a pinch splashes color. Camera frames stay in the browser. Needs https or localhost.
 - **Reduced motion:** everything moves at 15% speed and auto-cycle starts off.
 
 Settings save in the browser; Copy settings exports them as JSON.

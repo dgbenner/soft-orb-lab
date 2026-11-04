@@ -28,28 +28,43 @@ body {
   background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-main { max-width: 1240px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 22px; }
+html, body { height: 100%; overflow: hidden; }
 
-header { display: grid; gap: 6px; }
-h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(22px, 3vw, 30px); letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
-.lede { margin: 0; color: var(--muted); max-width: 66ch; }
-
-.bench { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
-@media (max-width: 900px) { .bench { grid-template-columns: minmax(0, 1fr); } }
-
-.frame { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4 / 5; height: min(calc(100vh - 215px), 900px); max-width: 100%; margin-inline: auto; }
-@media (max-width: 900px) { .frame { height: auto; width: 100%; } }
-@media (min-width: 901px) { .frame { position: sticky; top: 16px; } }
+/* The orb fills the window; everything else floats over it. */
+.frame { position: fixed; inset: 0; background: #000; }
 #orb { display: block; width: 100%; height: 100%; cursor: pointer; touch-action: none; }
-.frame-label {
-  position: absolute; left: 14px; bottom: 12px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); pointer-events: none;
-}
+#hands { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
-/* Control column: as tall as the frame beside it, scrolls inside */
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 14px; align-content: start; min-width: 0; }
-@media (min-width: 901px) { .panel { position: sticky; top: 16px; height: var(--frame-h, auto); overflow-y: auto; overscroll-behavior: contain; } }
-@media (max-width: 900px) { .panel { position: sticky; bottom: 0; z-index: 5; max-height: 46vh; overflow-y: auto; box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.4); } }
+header {
+  position: fixed; left: 20px; top: 20px; z-index: 3; display: grid; gap: 6px; max-width: min(46ch, calc(100vw - 372px));
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45); pointer-events: none;
+}
+header a { pointer-events: auto; color: inherit; }
+h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(18px, 2vw, 24px); letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
+.lede { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, 0.88); }
+.frame-label {
+  position: fixed; left: 20px; bottom: 16px; z-index: 3; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); pointer-events: none;
+}
+.preview {
+  position: fixed; left: 20px; bottom: 42px; z-index: 3; width: 168px; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.25); background: #000; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.preview video { display: block; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+
+/* Controls float over the orb on the right and scroll inside themselves. */
+.panel {
+  position: fixed; right: 16px; top: 16px; z-index: 4; width: 300px; max-height: calc(100vh - 32px); overflow-y: auto; overscroll-behavior: contain;
+  background: rgba(21, 24, 29, 0.74); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; padding: 14px 16px; display: grid; gap: 14px; align-content: start; min-width: 0;
+}
+@media (max-width: 760px) {
+  header { right: 16px; left: 16px; top: 14px; max-width: none; }
+  .lede { display: none; }
+  .panel { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 44vh; }
+  .frame-label { display: none; }
+  .preview { left: 16px; bottom: auto; top: 52px; width: 104px; }
+}
 
 .quick { display: grid; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .now { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
@@ -94,14 +109,16 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
 <main>
   <header>
     <h1>Soft Orb Lab</h1>
-    <p class="lede">A soft, glowing orb. A few hidden control points push and pull its outline, and colored lights drift around inside it, so it flexes and shifts color slowly. It leans toward your cursor, and clicking splashes a new color where you click. Pick a palette or let it cycle through them. <a href="home.html" style="color:var(--accent)">See it as a whole homepage →</a></p>
+    <p class="lede">A soft, glowing orb. A few hidden control points push and pull its outline, and colored lights drift around inside it, so it flexes and shifts color slowly. It leans toward your cursor, and clicking splashes a new color where you click. Turn on the camera and both hands do the same: point to lean, pinch to splash. <a href="home.html" style="display:block;margin-top:4px;white-space:nowrap">See it as a whole homepage →</a></p>
   </header>
 
   <div class="bench">
     <div class="frame" id="frame">
       <canvas id="orb" aria-hidden="true"></canvas>
+      <canvas id="hands" aria-hidden="true"></canvas>
       <p class="sr" id="orb-desc" aria-live="polite"></p>
       <span class="frame-label" id="frame-label" aria-hidden="true"></span>
+      <div class="preview" id="preview" hidden><video id="cam" muted playsinline aria-label="Your camera, mirrored"></video></div>
     </div>
 
     <aside class="panel" aria-label="Orb controls">
@@ -113,6 +130,10 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
           <button type="button" class="btn" id="next">Next ›</button>
         </div>
         <label class="check"><input type="checkbox" id="c-cycle" data-key="cycle"> Cycle through all palettes</label>
+        <div class="row">
+          <button type="button" class="btn" id="cam-btn" aria-pressed="false">Use camera</button>
+          <span class="status" id="cam-status" role="status"></span>
+        </div>
       </div>
 
       <details class="sec" data-sec="palette">
@@ -268,6 +289,28 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
         </fieldset>
       </details>
 
+      <details class="sec" data-sec="hands">
+        <summary>Hands</summary>
+        <fieldset>
+          <legend class="sr">Hands</legend>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-handlines">Wireframe strength</label><output id="o-handlines" for="c-handlines"></output></div>
+            <input type="range" id="c-handlines" data-key="handlines" min="0" max="1" step="0.05">
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-handreach">Reach</label><output id="o-handreach" for="c-handreach"></output></div>
+            <input type="range" id="c-handreach" data-key="handreach" min="1" max="1.8" step="0.05">
+            <p class="hint">Higher lets small hand movements cover more of the screen.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-handsize">Hand size</label><output id="o-handsize" for="c-handsize"></output></div>
+            <input type="range" id="c-handsize" data-key="handsize" min="0.3" max="1" step="0.05">
+          </div>
+          <label class="check"><input type="checkbox" id="c-preview" data-key="preview"> Show camera preview</label>
+          <p class="hint">Point with your index finger to lean, pinch thumb and finger to splash. Your camera stays in this browser; nothing is recorded or sent anywhere.</p>
+        </fieldset>
+      </details>
+
       <details class="sec" data-sec="settings">
         <summary>Settings</summary>
         <fieldset>
@@ -304,6 +347,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     points: 4, size: 0.74, flex: 0.2, speed: 0.6, round: 0.34,
     soft: 0.07, rim: 0.45, rimw: 0.14, glow: 0.5, glowsize: 0.36, vignette: 0.55,
     lean: 0.6, hoverglow: 0.35, splash: true, splashsize: 0.5, splashtime: 2.5, splashhue: 120,
+    handlines: 0.8, handreach: 1.2, handsize: 0.6, preview: true,
   };
   const P = Object.assign({}, DEFAULTS);
 
@@ -344,9 +388,9 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     uniform vec3 uBg;
     uniform vec3 uCol[4];
     uniform vec2 uLight[4];
-    uniform vec3 uCtrl[7];      // xy = position, z = radius (0 = unused); the 7th follows the cursor
+    uniform vec3 uCtrl[9];      // xy = position, z = radius (0 = unused); the last 3 follow mouse and hands
     uniform float uRound, uSoft, uRim, uRimW, uGlow, uGlowSize, uMix, uVignette, uTime;
-    uniform vec3 uHover;        // xy = cursor, z = hover glow strength (0 when the pointer is away)
+    uniform vec3 uHover[3];     // mouse, then two hands: xy = position, z = glow strength (0 when away)
     uniform vec4 uSplash[6];    // xy = click point, z = age 0..1 (>= 1 is unused), w = size
     uniform vec3 uSplashCol[6];
 
@@ -361,7 +405,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
 
       // Outline: the control points' circles melted together.
       float d = 1e3;
-      for (int i = 0; i < 7; i++) {
+      for (int i = 0; i < 9; i++) {
         if (uCtrl[i].z > 0.0) d = smin(d, length(p - uCtrl[i].xy) - uCtrl[i].z, uRound);
       }
 
@@ -374,7 +418,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       c /= wsum;
 
       // Hover: a soft brightening where the pointer is.
-      c *= 1.0 + uHover.z * exp(-dot(p - uHover.xy, p - uHover.xy) / 0.06);
+      for (int h = 0; h < 3; h++) c *= 1.0 + uHover[h].z * exp(-dot(p - uHover[h].xy, p - uHover[h].xy) / 0.06);
 
       // Clicks: each splash floods its area with a new color, spreading out and fading.
       vec3 ring = vec3(0.0);
@@ -428,7 +472,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     .forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
 
   function resize() {
-    const r = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 1.25);   // a soft image needs no more
     const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
   }
@@ -463,34 +507,220 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   }
   let lastSwitch = performance.now();
 
-  // ---------- pointer ----------
-  // Pointer position in the shader's coordinates: center 0,0, shorter side spans -1..1, y up.
-  const ptr = { x: 0, y: 0, sx: 0, sy: 0, inside: false, presence: 0 };
+  // ---------- pointers: the mouse and up to two hands all act the same way ----------
+  // Positions are in the shader's coordinates: center 0,0, shorter side spans -1..1, y up.
+  const newPointer = () => ({ x: 0, y: 0, sx: 0, sy: 0, inside: false, presence: 0 });
+  const ptr = newPointer();
+  const pointers = [ptr, newPointer(), newPointer()];
   const splashes = new Array(6).fill(null);
   const splashBuf = new Float32Array(24), splashColBuf = new Float32Array(18);
   let splashNext = 0, splashColor = 0;
-  function toOrb(e) {
+  function pxToOrb(px, py) {
     const r = canvas.getBoundingClientRect(), m = Math.min(r.width, r.height);
-    return [(2 * (e.clientX - r.left) - r.width) / m, (r.height - 2 * (e.clientY - r.top)) / m];
+    return [(2 * (px - r.left) - r.width) / m, (r.height - 2 * (py - r.top)) / m];
   }
-  canvas.addEventListener('pointermove', (e) => { [ptr.x, ptr.y] = toOrb(e); ptr.inside = true; });
-  canvas.addEventListener('pointerleave', () => (ptr.inside = false));
-  canvas.addEventListener('pointerdown', (e) => {
-    [ptr.x, ptr.y] = toOrb(e); ptr.inside = true;
+  const toOrb = (e) => pxToOrb(e.clientX, e.clientY);
+  function splashAt(x, y) {
     if (!P.splash) return;
-    // Each click takes the next palette color, turned around the color wheel so it stands out.
+    // Each splash takes the next palette color, turned around the color wheel so it stands out.
     const hexes = paletteHexes(P.palette);
     const base = hexes[1 + (splashColor++ % 4)];
     let [h, sat, l] = rgbToHsl(hexToRgb(base));
     h += (P.hue + P.splashhue) / 360; sat = Math.min(1, sat * P.sat * 1.1);
     const col = toLin(hslToRgb([h, sat, Math.min(0.75, l)]).map((v) => Math.min(1, v * P.bright)));
-    splashes[splashNext] = { x: ptr.x, y: ptr.y, t0: performance.now(), col };
+    splashes[splashNext] = { x, y, t0: performance.now(), col };
     splashNext = (splashNext + 1) % splashes.length;
-  });
+  }
+  canvas.addEventListener('pointermove', (e) => { [ptr.x, ptr.y] = toOrb(e); ptr.inside = true; });
+  canvas.addEventListener('pointerleave', () => (ptr.inside = false));
+  canvas.addEventListener('pointerdown', (e) => { [ptr.x, ptr.y] = toOrb(e); ptr.inside = true; splashAt(ptr.x, ptr.y); });
+
+  // ---------- hands: camera tracking and the wireframe, borrowed from Neural Cascade ----------
+  const MP_VERSION = '0.10.35';
+  const MP_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}`;
+  const HAND_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+  const HAND_BONES = [
+    [0, 1], [1, 2], [2, 3], [3, 4],           // thumb
+    [0, 5], [5, 6], [6, 7], [7, 8],           // index
+    [0, 9], [9, 10], [10, 11], [11, 12],      // middle
+    [0, 13], [13, 14], [14, 15], [15, 16],    // ring
+    [0, 17], [17, 18], [18, 19], [19, 20],    // pinky
+    [5, 9], [9, 13], [13, 17],                // knuckle line
+    [1, 5], [2, 5],                           // palm edge by the thumb
+  ];
+  const HAND_TIPS = [4, 8, 12, 16, 20];
+  const camVideo = $('#cam'), preview = $('#preview'), camBtn = $('#cam-btn'), camStatus = $('#cam-status');
+  const handCanvas = $('#hands'), hctx = handCanvas.getContext('2d');
+  const newRig = (pointer) => ({ pointer, pts: Array.from({ length: 21 }, () => [0, 0, 0]), seen: false, weight: 0, active: false, pinching: false });
+  const rigs = [newRig(pointers[1]), newRig(pointers[2])];
+  let landmarker = null, camStream = null, camBusy = false, lastVideoTime = -1, detections = [];
+
+  function setCamUi() {
+    const on = !!camStream;
+    camBtn.textContent = on ? 'Stop camera' : 'Use camera';
+    camBtn.setAttribute('aria-pressed', String(on));
+    preview.hidden = !(on && P.preview);
+  }
+  async function startCamera() {
+    if (camBusy || camStream) return;
+    camBusy = true; camBtn.disabled = true;
+    try {
+      camStatus.textContent = 'Asking for your camera\u2026';
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('nocamera');
+      camStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
+      camVideo.srcObject = camStream;
+      await camVideo.play();
+      setCamUi();
+      if (!landmarker) {
+        camStatus.textContent = 'Loading hand tracking\u2026';
+        const { HandLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);
+        const vision = await FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);
+        landmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: HAND_MODEL, delegate: 'GPU' }, runningMode: 'VIDEO', numHands: 2,
+        });
+      }
+      camStatus.textContent = 'Show your hands';
+    } catch (err) {
+      stopCamera();
+      camStatus.textContent = err?.name === 'NotAllowedError' ? 'Camera permission was blocked. Allow it in your browser to use hands.'
+        : err?.name === 'NotFoundError' ? 'No camera found.'
+        : err?.message === 'nocamera' ? 'This browser can\u2019t use a camera on this page.'
+        : 'Couldn\u2019t start hand tracking. Check your connection and try again.';
+      console.warn(err);
+    }
+    camBusy = false; camBtn.disabled = false;
+  }
+  function stopCamera() {
+    if (camStream) camStream.getTracks().forEach((t) => t.stop());
+    camStream = null; camVideo.srcObject = null; detections = []; lastVideoTime = -1;
+    camStatus.textContent = '';
+    setCamUi();
+  }
+  camBtn.addEventListener('click', () => (camStream ? stopCamera() : startCamera()));
+
+  // A landmark in screen pixels. Mirrored like the preview; one uniform scale so hands keep their shape.
+  function landmarkToPx(lm) {
+    const W = innerWidth, H = innerHeight, vw = camVideo.videoWidth || 640, vh = camVideo.videoHeight || 480;
+    const sc = Math.max(W / vw, H / vh) * P.handreach;
+    return [W / 2 + (0.5 - lm.x) * vw * sc, H / 2 + (lm.y - 0.5) * vh * sc, -lm.z * vw * sc];
+  }
+  const dist3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+  function updateHands(dt) {
+    if (camStream && landmarker && camVideo.readyState >= 2 && camVideo.currentTime !== lastVideoTime) {
+      lastVideoTime = camVideo.currentTime;
+      const res = landmarker.detectForVideo(camVideo, performance.now());
+      detections = res?.landmarks || [];
+      if (!camBusy) camStatus.textContent = detections.length === 0 ? 'Show your hands' : detections.length === 1 ? 'Tracking 1 hand' : 'Tracking 2 hands';
+    }
+    // Keep each hand on its own rig: the tracker can swap their order from one frame to the next.
+    const palms = detections.map((d) => landmarkToPx(d[9]));
+    const assign = [null, null];
+    if (detections.length === 1) {
+      const a = rigs[0], b = rigs[1], w = palms[0];
+      const da = a.seen && a.active ? dist3(a.pts[9], w) : 1e9, db = b.seen && b.active ? dist3(b.pts[9], w) : 1e9;
+      assign[da <= db ? 0 : 1] = detections[0];
+    } else if (detections.length >= 2) {
+      const straight = (rigs[0].seen ? dist3(rigs[0].pts[9], palms[0]) : 0) + (rigs[1].seen ? dist3(rigs[1].pts[9], palms[1]) : 0);
+      const crossed = (rigs[0].seen ? dist3(rigs[0].pts[9], palms[1]) : 0) + (rigs[1].seen ? dist3(rigs[1].pts[9], palms[0]) : 0);
+      if (crossed < straight) { assign[0] = detections[1]; assign[1] = detections[0]; } else { assign[0] = detections[0]; assign[1] = detections[1]; }
+    }
+    const follow = 1 - Math.pow(0.75, dt * 60);       // same smoothing as Neural Cascade's 0.25 per frame
+    const fade = 1 - Math.pow(0.88, dt * 60);
+    rigs.forEach((rig, i) => {
+      const det = assign[i];
+      rig.active = !!det;
+      rig.weight += ((det ? 1 : 0) - rig.weight) * fade;
+      if (det) {
+        // The hand stays where it is on screen but is drawn smaller around its palm.
+        const center = landmarkToPx(det[9]);
+        for (let j = 0; j < 21; j++) {
+          const raw = landmarkToPx(det[j]), cur = rig.pts[j];
+          const target = raw.map((v, k) => center[k] + (v - center[k]) * P.handsize);
+          for (let k = 0; k < 3; k++) cur[k] = rig.seen ? cur[k] + (target[k] - cur[k]) * follow : target[k];
+        }
+        rig.seen = true;
+        // Pointer: the index fingertip. Pinch (thumb to index, sized to the hand) is the click.
+        const tip = rig.pts[8], thumb = rig.pts[4], palm = Math.max(1, dist3(rig.pts[0], rig.pts[9]));
+        [rig.pointer.x, rig.pointer.y] = pxToOrb(tip[0], tip[1]);
+        rig.pointer.inside = true;
+        const gap = dist3(tip, thumb) / palm;
+        if (!rig.pinching && gap < 0.3) {
+          rig.pinching = true;
+          const [sx, sy] = pxToOrb((tip[0] + thumb[0]) / 2, (tip[1] + thumb[1]) / 2);
+          splashAt(sx, sy);
+        } else if (rig.pinching && gap > 0.5) rig.pinching = false;
+      } else {
+        rig.pointer.inside = false; rig.pinching = false;
+        if (rig.weight < 0.02) rig.seen = false;
+      }
+    });
+  }
+
+  // The wireframe: six-sided tubes along each bone and low-poly domes on the fingertips, as in Neural Cascade.
+  const HEX = Array.from({ length: 6 }, (_, i) => [Math.cos((i / 6) * Math.PI * 2), Math.sin((i / 6) * Math.PI * 2)]);
+  function ring(p, u, v, r) { return HEX.map(([c, s]) => [p[0] + (u[0] * c + v[0] * s) * r, p[1] + (u[1] * c + v[1] * s) * r]); }
+  function addBone(path, hatch, a, b, r) {
+    const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], len = Math.hypot(d[0], d[1], d[2]);
+    if (len < 0.5) return;
+    d[0] /= len; d[1] /= len; d[2] /= len;
+    let u = [d[1], -d[0], 0], ul = Math.hypot(u[0], u[1]);       // perpendicular to the bone, in the screen plane
+    if (ul < 1e-3) { u = [1, 0, 0]; ul = 1; }
+    u = [u[0] / ul, u[1] / ul, 0];
+    const v = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], d[0] * u[1] - d[1] * u[0]];
+    const ra = ring(a, u, v, r), rb = ring(b, u, v, r);
+    for (let i = 0; i < 6; i++) {
+      const n = (i + 1) % 6;
+      path.moveTo(ra[i][0], ra[i][1]); path.lineTo(ra[n][0], ra[n][1]);
+      path.moveTo(rb[i][0], rb[i][1]); path.lineTo(rb[n][0], rb[n][1]);
+      path.moveTo(ra[i][0], ra[i][1]); path.lineTo(rb[i][0], rb[i][1]);
+      hatch.moveTo(ra[i][0], ra[i][1]); hatch.lineTo(rb[n][0], rb[n][1]);   // diagonal, for the crosshatch
+    }
+  }
+  function addDome(path, p, r) {
+    for (let lat = 1; lat <= 3; lat++) {
+      const a = (lat / 4) * Math.PI, rr = Math.sin(a) * r, yy = Math.cos(a) * r;
+      path.moveTo(p[0] + rr, p[1] + yy * 0.6);
+      path.ellipse(p[0], p[1] + yy * 0.6, rr, rr * 0.45, 0, 0, Math.PI * 2);
+    }
+    for (let lon = 0; lon < 3; lon++) {
+      path.moveTo(p[0] + Math.cos((lon / 3) * Math.PI) * r, p[1] - Math.sin((lon / 3) * Math.PI) * r);
+      path.ellipse(p[0], p[1], r, r * (0.3 + lon * 0.3), (lon / 3) * Math.PI, 0, Math.PI * 2);
+    }
+  }
+  function drawHands() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
+    if (handCanvas.width !== Math.round(W * dpr) || handCanvas.height !== Math.round(H * dpr)) { handCanvas.width = Math.round(W * dpr); handCanvas.height = Math.round(H * dpr); }
+    hctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    hctx.clearRect(0, 0, W, H);
+    for (const rig of rigs) {
+      if (!rig.seen || rig.weight < 0.02) continue;
+      const palm = Math.max(1, dist3(rig.pts[0], rig.pts[9])), r = palm * 0.075;
+      const cage = new Path2D(), hatch = new Path2D(), links = new Path2D(), joints = new Path2D();
+      HAND_BONES.forEach(([a, b]) => {
+        addBone(cage, hatch, rig.pts[a], rig.pts[b], r);
+        links.moveTo(rig.pts[a][0], rig.pts[a][1]); links.lineTo(rig.pts[b][0], rig.pts[b][1]);
+      });
+      HAND_TIPS.forEach((i) => addDome(cage, rig.pts[i], r * 1.15));
+      rig.pts.forEach((p) => { joints.moveTo(p[0] + 1.8, p[1]); joints.arc(p[0], p[1], 1.8, 0, Math.PI * 2); });
+      const alpha = rig.weight * P.handlines;
+      hctx.lineJoin = 'round';
+      hctx.strokeStyle = `rgba(8, 20, 38, ${alpha * 0.3})`; hctx.lineWidth = 2.4; hctx.stroke(links);   // keeps the lines readable on bright colors
+      hctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.22})`; hctx.lineWidth = 0.6; hctx.stroke(hatch);
+      hctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.6})`; hctx.lineWidth = 0.7; hctx.stroke(cage);
+      hctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`; hctx.lineWidth = 1.2; hctx.stroke(links);
+      hctx.fillStyle = `rgba(255, 255, 255, ${alpha})`; hctx.fill(joints);
+      // The cursor: a ring on the fingertip that fills when you pinch.
+      const tip = rig.pts[8];
+      hctx.beginPath(); hctx.arc(tip[0], tip[1], rig.pinching ? 7 : 11, 0, Math.PI * 2);
+      hctx.fillStyle = `rgba(255, 255, 255, ${rig.weight * (rig.pinching ? 0.85 : 0.12)})`; hctx.fill();
+      hctx.strokeStyle = `rgba(255, 255, 255, ${rig.weight * 0.95})`; hctx.lineWidth = 1.5; hctx.stroke();
+    }
+  }
 
   // ---------- loop ----------
   let t = 0, last = performance.now();
-  const ctrlBuf = new Float32Array(21), lightBuf = new Float32Array(8), colBuf = new Float32Array(12);
+  const ctrlBuf = new Float32Array(27), hoverBuf = new Float32Array(9), lightBuf = new Float32Array(8), colBuf = new Float32Array(12);
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     const slow = reduced() ? 0.15 : 1;
@@ -515,15 +745,20 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     }
     for (let j = 0; j < 4; j++) colBuf.set(shown[j + 1], j * 3);
 
-    // Pointer: the orb leans toward it (a 7th control point between the center and the cursor).
+    // Pointers: the orb leans toward each one, through a control point between the center and the pointer.
+    updateHands(dt);
+    drawHands();
     const e = Math.min(1, dt * 6);
-    ptr.presence += ((ptr.inside ? 1 : 0) - ptr.presence) * Math.min(1, dt * 3);
-    ptr.sx += (ptr.x - ptr.sx) * e; ptr.sy += (ptr.y - ptr.sy) * e;
-    const reach = Math.hypot(ptr.sx, ptr.sy);
-    const near = Math.max(0, 1 - Math.max(0, reach - P.size) / 0.6);   // fades as the cursor moves far from the orb
-    ctrlBuf[18] = ptr.sx * 0.62; ctrlBuf[19] = ptr.sy * 0.62;
-    ctrlBuf[20] = P.size * 0.5 * P.lean * ptr.presence * near;
-    gl.uniform3f(U.uHover, ptr.sx, ptr.sy, P.hoverglow * ptr.presence);
+    pointers.forEach((pt, i) => {
+      pt.presence += ((pt.inside ? 1 : 0) - pt.presence) * Math.min(1, dt * 3);
+      if (pt.presence < 0.01 && pt.inside) { pt.sx = pt.x; pt.sy = pt.y; }   // a hand arriving starts where it is
+      pt.sx += (pt.x - pt.sx) * e; pt.sy += (pt.y - pt.sy) * e;
+      const reach = Math.hypot(pt.sx, pt.sy);
+      const near = Math.max(0, 1 - Math.max(0, reach - P.size) / 0.6);   // fades as the pointer moves far from the orb
+      ctrlBuf.set([pt.sx * 0.62, pt.sy * 0.62, P.size * 0.5 * P.lean * pt.presence * near], (6 + i) * 3);
+      hoverBuf.set([pt.sx, pt.sy, P.hoverglow * pt.presence], i * 3);
+    });
+    gl.uniform3fv(U.uHover, hoverBuf);
 
     for (let k = 0; k < 6; k++) {
       const sp = splashes[k];
@@ -561,6 +796,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     glowsize: (v) => (+v).toFixed(2), vignette: (v) => Math.round(v * 100) + '%',
     lean: (v) => (+v).toFixed(2), hoverglow: (v) => (+v).toFixed(2), splashsize: (v) => (+v).toFixed(2),
     splashtime: (v) => (+v).toFixed(1) + ' s', splashhue: (v) => (v > 0 ? '+' : '') + v + '°',
+    handlines: (v) => Math.round(v * 100) + '%', handreach: (v) => (+v).toFixed(2) + '×', handsize: (v) => Math.round(v * 100) + '%',
   };
   const sel = $('#c-palette');
   sel.innerHTML = PALETTES.map((p) => `<option value="${p.id}">${p.name}</option>`).join('') + '<option value="custom">Custom</option>';
@@ -581,6 +817,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     $('#now-name').textContent = nameOf(P.palette);
     $('#frame-label').textContent = nameOf(P.palette);
     $('#orb-desc').textContent = `A soft glowing orb in the ${nameOf(P.palette)} palette.`;
+    preview.hidden = !(camStream && P.preview);
     save();
   }
   const STORE = 'soft-orb-lab:v1';
@@ -628,16 +865,12 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     sync(); target(true); flash('Reset to the default settings');
   });
 
-  // The control column is as tall as the frame beside it, and scrolls inside.
-  const frameEl = $('#frame'), bench = document.querySelector('.bench');
-  new ResizeObserver(() => bench.style.setProperty('--frame-h', frameEl.offsetHeight + 'px')).observe(frameEl);
-
   load();
   if (reduced()) P.cycle = false;
   sync(); target(true);
   requestAnimationFrame((n) => { last = n; frame(n); });
 
-  window.__orb = { P, step, sync };
+  window.__orb = { P, step, sync, rigs, splashes, setFakeHands: (d) => { detections = d; } };
 })();
 </script>
 </body>
