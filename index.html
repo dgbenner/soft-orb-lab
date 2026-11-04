@@ -44,8 +44,8 @@ h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(18px, 2vw, 24p
 .moves { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; font-size: 11.5px; line-height: 1.35; letter-spacing: -0.012em; color: #fff; }
 .moves li { display: flex; align-items: baseline; }
 .moves b { font-weight: 700; font-variant-caps: all-small-caps; letter-spacing: -0.005em; }
-.moves b::after { content: ""; display: inline-block; width: 12px; height: 1px; margin: 0 7px; vertical-align: 0.28em; background: rgba(255, 255, 255, 0.55); }
-.moves em { color: rgba(255, 255, 255, 0.8); }
+.moves b { margin-right: 0.8em; }
+.moves em { font-size: 0.9em; color: rgba(255, 255, 255, 0.8); }
 .home-link { font-size: 12.5px; margin-top: 4px; white-space: nowrap; }
 .frame-label {
   position: fixed; left: 20px; bottom: 16px; z-index: 3; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -60,24 +60,24 @@ h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(18px, 2vw, 24p
 #cam-figure { width: 100%; height: 100%; min-height: 162px; object-fit: cover; filter: blur(4.5px); transform: scale(1.12); }
 .preview video { width: 100%; height: 100%; min-height: 162px; object-fit: cover; transform: scaleX(-1); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
 .preview.showing video { opacity: 1; }
-.cam-ui { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; padding: 10px; text-align: center; color: #fff; }
-.cam-icon { width: 20px; height: 15px; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6)); }
-.cam-status { font-size: 11px; line-height: 1.3; text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7); }
+.cam-ui { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 8px; color: #fff; }
+.cam-icon { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 40px; height: 31px; filter: drop-shadow(0 1px 5px rgba(0, 0, 0, 0.6)); pointer-events: none; }
+.preview.on .cam-icon { display: none; }
+.cam-status { font-size: 11px; line-height: 1.3; text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8); }
 .cam-status:empty { display: none; }
-.cam-actions { display: grid; gap: 5px; justify-items: center; width: 100%; }
-.cam-btn {
-  font: inherit; font-family: var(--mono); font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.4); background: rgba(15, 18, 22, 0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+/* Both buttons sit in the bottom-right corner, over the picture, with the camera menu beside them. */
+.cam-actions { display: flex; align-items: stretch; gap: 8px; }
+.cam-btn, .cam-pick select {
+  font-family: var(--mono); font-size: 11px; line-height: 1.2; height: 26px; border-radius: 6px; color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.32); background: rgba(15, 18, 22, 0.42); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
-.cam-btn:hover { background: rgba(15, 18, 22, 0.8); border-color: #fff; }
+.cam-btn { order: 2; flex: none; margin-left: auto; padding: 0 9px; cursor: pointer; white-space: nowrap; }
+.cam-btn:hover { background: rgba(15, 18, 22, 0.72); border-color: #fff; }
 .cam-btn:disabled { opacity: 0.6; cursor: default; }
 .preview :focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-.cam-pick { width: 100%; }
-.cam-pick select { font-size: 11.5px; padding: 3px 6px; background: rgba(15, 18, 22, 0.7); color: #fff; border-color: rgba(255, 255, 255, 0.3); }
-/* Camera on: controls step aside to the bottom so you can see yourself. */
-.preview.on .cam-ui { justify-content: flex-end; gap: 5px; padding: 8px; }
-.preview.on .cam-icon { display: none; }
-.preview.on .cam-btn { font-size: 11px; padding: 3px 9px; }
+.cam-pick { order: 1; flex: 1; min-width: 0; }
+.cam-pick select { width: 100%; padding: 0 4px; }
+.cam-pick select option { color: #111; }
 
 /* Controls float over the orb on the right and scroll inside themselves. */
 .panel {
@@ -149,7 +149,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       <li><b>Squeeze</b><em>fist near the orb</em></li>
       <li><b>Swell</b><em>fingers spread, near the orb</em></li>
     </ul>
-    <a class="home-link" href="home.html">See it as a whole homepage →</a>
+    <a class="home-link" href="home.html">Homepage preview →</a>
   </header>
 
   <div class="bench">
@@ -1245,7 +1245,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     colorInputs.forEach((inp, i) => { if (inp.value !== hexes[i]) inp.value = hexes[i]; });
     $('#swatches').innerHTML = hexes.map((h) => `<span style="background:${h}"></span>`).join('');
     $('#now-name').textContent = nameOf(P.palette);
-    $('#frame-label').textContent = nameOf(P.palette);
+    $('#frame-label').textContent = `Palette: ${nameOf(P.palette)}`;
     $('#orb-desc').textContent = `A soft glowing orb in the ${nameOf(P.palette)} palette.`;
     preview.classList.toggle('showing', !!camStream && P.preview);
     if (!(camStream && P.preview)) startFigure();
