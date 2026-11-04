@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Soft Orb Lab</title>
+<title>Needoh Lab</title>
 <meta name="description" content="A soft, glowing orb that flexes and shifts color, with palettes to cycle through.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,7 +41,9 @@ header {
 }
 header a { pointer-events: auto; color: inherit; }
 h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(18px, 2vw, 24px); letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
-.lede { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, 0.88); }
+.moves { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 1px; font-size: 13px; color: #fff; }
+.moves em { color: rgba(255, 255, 255, 0.78); margin-left: 4px; }
+.home-link { font-size: 12.5px; margin-top: 4px; white-space: nowrap; }
 .frame-label {
   position: fixed; left: 20px; bottom: 16px; z-index: 3; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
   color: rgba(255, 255, 255, 0.86); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); pointer-events: none;
@@ -60,7 +62,7 @@ h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(18px, 2vw, 24p
 }
 @media (max-width: 760px) {
   header { right: 16px; left: 16px; top: 14px; max-width: none; }
-  .lede { display: none; }
+  .moves, .home-link { display: none; }
   .panel { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 44vh; }
   .frame-label { display: none; }
   .preview { left: 16px; bottom: auto; top: 52px; width: 104px; }
@@ -108,8 +110,20 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
 <body>
 <main>
   <header>
-    <h1>Soft Orb Lab</h1>
-    <p class="lede">A soft, glowing orb. A few hidden control points push and pull its outline, and colored lights drift around inside it, so it flexes and shifts color slowly. It leans toward your cursor. Press and hold to grab it and pull, or click to splash color. Turn on the camera and both hands do the same: pinch to grab, pull both sides apart like putty. <a href="home.html" style="display:block;margin-top:4px;white-space:nowrap">See it as a whole homepage →</a></p>
+    <h1>Needoh Lab</h1>
+    <ul class="moves" aria-label="What you can do">
+      <li>Lean <em>point near the orb</em></li>
+      <li>Splash <em>click, or tap finger to thumb</em></li>
+      <li>Grab <em>press and drag, or pinch and hold</em></li>
+      <li>Stretch <em>pinch both sides, pull apart</em></li>
+      <li>Pull in two <em>keep pulling, past the stretch</em></li>
+      <li>Flick <em>let go mid-motion</em></li>
+      <li>Next palette <em>clap</em></li>
+      <li>Turn the color <em>tilt hand sideways, hold</em></li>
+      <li>Squeeze <em>fist near the orb</em></li>
+      <li>Swell <em>fingers spread, near the orb</em></li>
+    </ul>
+    <a class="home-link" href="home.html">See it as a whole homepage →</a>
   </header>
 
   <div class="bench">
@@ -316,6 +330,17 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
             <input type="range" id="c-grabwobble" data-key="grabwobble" min="0" max="1" step="0.05">
             <p class="hint">How much it jiggles when you let go.</p>
           </div>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-flick">Flick</label><output id="o-flick" for="c-flick"></output></div>
+            <input type="range" id="c-flick" data-key="flick" min="0" max="1" step="0.05">
+            <p class="hint">How much of your hand's speed the orb keeps when you let go.</p>
+          </div>
+          <label class="check"><input type="checkbox" id="c-grabsplit" data-key="grabsplit"> Pull it in two</label>
+          <div class="ctl">
+            <div class="ctl-top"><label for="c-grabsnap">Snap point</label><output id="o-grabsnap" for="c-grabsnap"></output></div>
+            <input type="range" id="c-grabsnap" data-key="grabsnap" min="0.6" max="3" step="0.05">
+            <p class="hint">How far apart you pull before it parts. Lower snaps sooner.</p>
+          </div>
         </fieldset>
       </details>
 
@@ -337,6 +362,9 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
             <input type="range" id="c-handsize" data-key="handsize" min="0.3" max="1" step="0.05">
           </div>
           <label class="check"><input type="checkbox" id="c-preview" data-key="preview"> Show camera preview</label>
+          <label class="check"><input type="checkbox" id="c-handclap" data-key="handclap"> Clap for next palette</label>
+          <label class="check"><input type="checkbox" id="c-handtwist" data-key="handtwist"> Tilt to turn the color</label>
+          <label class="check"><input type="checkbox" id="c-handsqueeze" data-key="handsqueeze"> Fist squeezes, spread hand swells</label>
           <p class="hint">Point with your index finger to lean. Pinch thumb and index finger on the orb and hold to grab it. Tap any fingertip to your thumb to splash color, like a click. Your camera stays in this browser; nothing is recorded or sent anywhere.</p>
         </fieldset>
       </details>
@@ -378,7 +406,8 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     soft: 0.07, rim: 0.45, rimw: 0.14, glow: 0.5, glowsize: 0.36, vignette: 0.55,
     lean: 0.6, hoverglow: 0.35, splash: true, splashsize: 0.5, splashtime: 2.5, splashhue: 120,
     handlines: 0.8, handreach: 1.2, handsize: 0.6, preview: true,
-    grabsize: 0.75, grabreturn: 3.5, grabwobble: 0.6, grabneck: 0.6,
+    grabsize: 0.75, grabreturn: 3.5, grabwobble: 0.6, grabneck: 0.6, flick: 0.35, grabsplit: true, grabsnap: 1.6,
+    handclap: true, handtwist: true, handsqueeze: true,
   };
   const P = Object.assign({}, DEFAULTS);
 
@@ -425,6 +454,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     uniform float uGrabR;       // how wide an area each grab drags with it
     uniform vec4 uNeck;         // midpoint (xy) and direction (zw) between two opposing grabs
     uniform vec2 uNeckAmt;      // how much the middle thins, and how long the thin part is
+    uniform vec2 uCut;          // pulled in two: how far parted (0..1), and how wide the gap is
     uniform vec3 uHover[3];     // mouse, then two hands: xy = position, z = glow strength (0 when away)
     uniform vec4 uSplash[6];    // xy = click point, z = age 0..1 (>= 1 is unused), w = size
     uniform vec3 uSplashCol[6];
@@ -463,6 +493,12 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       float d = 1e3;
       for (int i = 0; i < 9; i++) {
         if (uCtrl[i].z > 0.0) d = smin(d, length(p - uCtrl[i].xy) - uCtrl[i].z, uRound);
+      }
+
+      // Pulled in two: the outline parts across the neck, leaving two rounded blobs.
+      if (uCut.x > 0.001) {
+        float across = dot(p0 - uNeck.xy, uNeck.zw);
+        d += uCut.x * 1.4 * exp(-across * across / (uCut.y * uCut.y));
       }
 
       // Inside colors: each light pulls nearby pixels toward its color.
@@ -524,7 +560,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   gl.enableVertexAttribArray(aLoc);
   gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
   const U = {};
-  ['uRes', 'uBg', 'uCol', 'uLight', 'uCtrl', 'uRound', 'uSoft', 'uRim', 'uRimW', 'uGlow', 'uGlowSize', 'uMix', 'uVignette', 'uTime', 'uHover', 'uSplash', 'uSplashCol', 'uGrab', 'uGrabR', 'uNeck', 'uNeckAmt']
+  ['uRes', 'uBg', 'uCol', 'uLight', 'uCtrl', 'uRound', 'uSoft', 'uRim', 'uRimW', 'uGlow', 'uGlowSize', 'uMix', 'uVignette', 'uTime', 'uHover', 'uSplash', 'uSplashCol', 'uGrab', 'uGrabR', 'uNeck', 'uNeckAmt', 'uCut']
     .forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
 
   function resize() {
@@ -547,19 +583,19 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
 
   // ---------- palette state, with crossfades ----------
   let shown = adjusted(paletteHexes(P.palette)), from = shown, to = shown, fadeT0 = -1e9, fadeDur = 1;
-  function target(instant) {
+  function target(instant, fadeMs) {
     to = adjusted(paletteHexes(P.palette));
     if (instant || reduced()) { shown = from = to; fadeT0 = -1e9; return; }
-    from = shown; fadeT0 = performance.now(); fadeDur = P.blend * 1000;
+    from = shown; fadeT0 = performance.now(); fadeDur = fadeMs || P.blend * 1000;
   }
   const easeIO = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
   const ids = () => PALETTES.map((p) => p.id);
-  function step(dir) {
+  function step(dir, fadeMs) {
     const list = ids(), i = list.indexOf(P.palette);
     P.palette = list[((i < 0 ? 0 : i + dir) + list.length) % list.length];
     lastSwitch = performance.now();
-    sync(); target();
+    sync(); target(false, fadeMs);
   }
   let lastSwitch = performance.now();
 
@@ -614,6 +650,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     const [wx, wy] = warpPoint(x, y);
     let d = 1e3;
     for (let i = 0; i < 6; i++) if (ctrlBuf[i * 3 + 2] > 0) d = smin(d, Math.hypot(wx - ctrlBuf[i * 3], wy - ctrlBuf[i * 3 + 1]) - ctrlBuf[i * 3 + 2], P.round);
+    if (split.amt > 0.001) { const al = (x - neck.mx) * neck.dx + (y - neck.my) * neck.dy; d += split.amt * 1.4 * Math.exp(-al * al / (split.w * split.w)); }
     return d;
   }
   function press(i, x, y) {
@@ -633,7 +670,11 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     const g = grabs[i];
     if (!g.down) return;
     if (!g.moved && performance.now() - g.t0 < (i === 0 ? TAP_MS : HAND_TAP_MS)) splashAt(x, y);
-    if (g.slot) { g.slot.owner = -1; g.slot = null; }
+    if (g.slot) {
+      const pt = pointers[i], sp = Math.hypot(pt.vx || 0, pt.vy || 0), lim = sp > 5 ? 5 / sp : 1;
+      g.slot.vx += (pt.vx || 0) * lim * P.flick; g.slot.vy += (pt.vy || 0) * lim * P.flick;   // flick: keeps the hand's speed
+      g.slot.owner = -1; g.slot = null;
+    }
     g.down = false; g.hold = false;
   }
   function trackMove(i, x, y) {
@@ -769,7 +810,35 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   }
   const dist3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
+  // Poses: clap, tilt, fist, spread. Fingertip distance is measured from the wrist, in palm lengths.
+  let clapArmed = true, clapLastSep = 9, clapLastT = 0, clapAt = 0, handHueRate = 0, squeezeTarget = 0;
+  function fireClap(now) {
+    if (now - clapAt < 900) return;
+    clapAt = now; clapArmed = false;
+    step(1, 1200);
+  }
+  function readPose(rig, det, now) {
+    const raw = det.map(landmarkToPx), palm = Math.max(1, dist3(raw[0], raw[9]));
+    const reach = [8, 12, 16, 20].map((f) => dist3(raw[f], raw[0]) / palm);
+    const gap = dist3(raw[8], raw[4]) / palm;
+    const closed = !rig.pinching && gap > 0.35 && Math.max(...reach) < 1.3;
+    rig.fistSince = closed ? rig.fistSince || now : 0;
+    const fist = rig.fistSince && now - rig.fistSince > 150;
+    if (closed) rig.fingerDown = { 12: 0, 16: 0, 20: 0 };          // closing a fist isn't a tap
+    const spread = !rig.pinching && reach[0] > 1.55 && reach[1] > 1.55 && reach[2] > 1.55 && reach[3] > 1.25;
+    if (P.handsqueeze && (fist || spread)) {
+      const [px, py] = pxToOrb(raw[9][0], raw[9][1]);
+      if (orbDistance(px, py) < 0.35) squeezeTarget = fist ? -1 : Math.max(squeezeTarget, 1);
+    }
+    // Tilt, like a dial: past a dead zone the color keeps turning, and stays when you straighten up.
+    if (P.handtwist && !rig.pinching && !fist && !grabs[rig.slot].hold) {
+      const ang = (Math.atan2(raw[9][0] - raw[0][0], raw[0][1] - raw[9][1]) * 180) / Math.PI;
+      const over = Math.abs(ang) - 35;
+      if (over > 0 && Math.abs(ang) < 120 && spread) handHueRate = Math.sign(ang) * Math.min(1, over / 45) * 80;
+    }
+  }
   function updateHands(dt) {
+    handHueRate = 0; squeezeTarget = 0;
     if (camStream && landmarker && camVideo.readyState >= 2 && camVideo.currentTime !== lastVideoTime) {
       lastVideoTime = camVideo.currentTime;
       const res = landmarker.detectForVideo(camVideo, performance.now());
@@ -790,6 +859,19 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     }
     const follow = 1 - Math.pow(0.75, dt * 60);       // same smoothing as Neural Cascade's 0.25 per frame
     const fade = 1 - Math.pow(0.88, dt * 60);
+    // Clap: the palms come together. Hands that close often lose tracking, so a hand vanishing mid-approach counts too.
+    if (P.handclap) {
+      const nowC = performance.now();
+      if (detections.length >= 2) {
+        const pz = detections.map((d) => Math.max(1, dist3(landmarkToPx(d[0]), landmarkToPx(d[9]))));
+        const sep = dist3(palms[0], palms[1]) / ((pz[0] + pz[1]) / 2);
+        if (sep > 3) clapArmed = true;
+        if (clapArmed && sep < 1.7 && !rigs[0].pinching && !rigs[1].pinching) fireClap(nowC);
+        clapLastSep = sep; clapLastT = nowC;
+      } else if (clapArmed && clapLastSep < 2.6 && nowC - clapLastT < 200) {
+        fireClap(nowC);
+      }
+    }
     rigs.forEach((rig, i) => {
       const det = assign[i];
       rig.active = !!det;
@@ -806,6 +888,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
         // Pointer: the index fingertip, or the point between finger and thumb while pinching.
         // A pinch (sized to the hand) is pressing the mouse down; opening the fingers lets go.
         rig.lostAt = 0;
+        readPose(rig, det, performance.now());
         const tip = rig.pts[8], thumb = rig.pts[4], palm = Math.max(1, dist3(rig.pts[0], rig.pts[9]));
         // Read fingers straight from the camera: the smoothed positions lag enough to miss a quick tap.
         const rawThumb = landmarkToPx(det[4]), rawPalm = Math.max(1, dist3(landmarkToPx(det[0]), landmarkToPx(det[9])));
@@ -908,6 +991,8 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
 
   // ---------- loop ----------
   const neck = { n: 0, mx: 0, my: 0, dx: 1, dy: 0, l: 1 };
+  const split = { on: false, amt: 0, w: 0.2 };
+  let sizeMul = 1, hueSyncAt = 0;
   let t = 0, last = performance.now();
   const ctrlBuf = new Float32Array(27), hoverBuf = new Float32Array(9), grabBuf = new Float32Array(24), lightBuf = new Float32Array(8), colBuf = new Float32Array(12);
   function frame(now) {
@@ -925,7 +1010,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       const c = CTRL[i], on = i < P.points, ts = t * P.speed;
       ctrlBuf[i * 3] = Math.sin(ts * c.fx * 2.3 + c.px) * P.flex * 0.9;
       ctrlBuf[i * 3 + 1] = Math.cos(ts * c.fy * 2.1 + c.py) * P.flex;
-      ctrlBuf[i * 3 + 2] = on ? P.size * c.r : 0;
+      ctrlBuf[i * 3 + 2] = on ? P.size * c.r * sizeMul : 0;
     }
     for (let j = 0; j < 4; j++) {
       const L = LIGHTS[j], td = t * P.drift;
@@ -959,22 +1044,33 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     // Two spots pulled apart: the middle thins, in proportion to how far they've stretched. All of it eases,
     // so it fades rather than pops when a pull starts, ends or changes partner.
     const pulled = pulls.filter((g) => Math.hypot(g.dx, g.dy) > 0.02).sort((a, b) => (b.owner >= 0) - (a.owner >= 0) || Math.hypot(b.dx, b.dy) - Math.hypot(a.dx, a.dy));
-    let neckTarget = 0;
+    let neckTarget = 0, stretch = 0;
     if (pulled.length >= 2) {
       const a = pulled[0], b = pulled[1];
       const hax = a.ax + a.dx, hay = a.ay + a.dy, hbx = b.ax + b.dx, hby = b.ay + b.dy;
       const sep = Math.hypot(hax - hbx, hay - hby), sep0 = Math.hypot(a.ax - b.ax, a.ay - b.ay);
+      stretch = sep - sep0;
       if (sep > 0.001) {
         neckTarget = Math.min(0.8, Math.max(0, (P.grabneck * (sep - sep0)) / Math.max(sep0, 0.4)));
         let dirX = (hbx - hax) / sep, dirY = (hby - hay) / sep;
         if (dirX * neck.dx + dirY * neck.dy < 0) { dirX = -dirX; dirY = -dirY; }
-        const place = neck.n < 0.005 ? 1 : Math.min(1, dt * 7);    // nothing shows yet, so it can settle straight there
+        const place = neck.n < 0.005 && split.amt < 0.005 ? 1 : Math.min(1, dt * 7);    // nothing shows yet, so it can settle straight there
         neck.mx += ((hax + hbx) / 2 - neck.mx) * place; neck.my += ((hay + hby) / 2 - neck.my) * place;
         neck.dx += (dirX - neck.dx) * place; neck.dy += (dirY - neck.dy) * place;
         neck.l += (Math.max(0.2, sep * 0.42) - neck.l) * place;
       }
     }
     neck.n += (neckTarget - neck.n) * Math.min(1, dt * 7);
+    // Pull in two: past the snap point the neck parts, with a kick. It closes again once the pieces come back together.
+    const bothHeld = pulls.filter((q) => q.owner >= 0).length >= 2;
+    if (!split.on && P.grabsplit && bothHeld && stretch > P.grabsnap) {
+      split.on = true;
+      const toA = pulled[0], toB = pulled[1];
+      toA.vx -= neck.dx * -2.2; toA.vy -= neck.dy * -2.2; toB.vx += neck.dx * -2.2; toB.vy += neck.dy * -2.2;
+    } else if (split.on && stretch < P.grabsnap * 0.3) split.on = false;
+    split.amt += ((split.on ? 1 : 0) - split.amt) * Math.min(1, dt * (split.on ? 16 : 2.2));
+    split.w = 0.12 + Math.max(0, stretch) * 0.1;
+    gl.uniform2f(U.uCut, split.amt, split.w);
     const dirLen = Math.hypot(neck.dx, neck.dy) || 1;
     gl.uniform4f(U.uNeck, neck.mx, neck.my, neck.dx / dirLen, neck.dy / dirLen);
     gl.uniform2f(U.uNeckAmt, neck.n, neck.l);
@@ -984,6 +1080,19 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     // Pointers: the orb leans toward each one, through a control point between the center and the pointer.
     updateHands(dt);
     drawHands();
+    // Fist and spread hand: the orb tightens or swells, slowly, and settles back when the hand relaxes.
+    const sizeGoal = squeezeTarget < 0 ? 0.68 : squeezeTarget > 0 ? 1.2 : 1;
+    sizeMul += (sizeGoal - sizeMul) * Math.min(1, dt * 2.5);
+    if (handHueRate) {
+      P.hue = ((P.hue + handHueRate * dt + 540) % 360) - 180;
+      to = adjusted(paletteHexes(P.palette));
+      if (now - hueSyncAt > 250) { hueSyncAt = now; sync(); }
+    }
+    pointers.forEach((pt) => {
+      const ix = dt > 0 ? (pt.x - (pt.lx ?? pt.x)) / dt : 0, iy = dt > 0 ? (pt.y - (pt.ly ?? pt.y)) / dt : 0;
+      pt.vx = (pt.vx || 0) + (ix - (pt.vx || 0)) * 0.25; pt.vy = (pt.vy || 0) + (iy - (pt.vy || 0)) * 0.25;
+      pt.lx = pt.x; pt.ly = pt.y;
+    });
     const e = Math.min(1, dt * 6);
     pointers.forEach((pt, i) => {
       pt.presence += ((pt.inside ? 1 : 0) - pt.presence) * Math.min(1, dt * 3);
@@ -1035,7 +1144,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     lean: (v) => (+v).toFixed(2), hoverglow: (v) => (+v).toFixed(2), splashsize: (v) => (+v).toFixed(2),
     splashtime: (v) => (+v).toFixed(1) + ' s', splashhue: (v) => (v > 0 ? '+' : '') + v + '°',
     handlines: (v) => Math.round(v * 100) + '%', handreach: (v) => (+v).toFixed(2) + '×', handsize: (v) => Math.round(v * 100) + '%',
-    grabsize: (v) => (+v).toFixed(2), grabreturn: (v) => (+v).toFixed(1), grabwobble: (v) => Math.round(v * 100) + '%', grabneck: (v) => Math.round(v * 100) + '%',
+    grabsize: (v) => (+v).toFixed(2), grabreturn: (v) => (+v).toFixed(1), grabwobble: (v) => Math.round(v * 100) + '%', grabneck: (v) => Math.round(v * 100) + '%', flick: (v) => Math.round(v * 100) + '%', grabsnap: (v) => (+v).toFixed(2),
   };
   const sel = $('#c-palette');
   sel.innerHTML = PALETTES.map((p) => `<option value="${p.id}">${p.name}</option>`).join('') + '<option value="custom">Custom</option>';
@@ -1109,7 +1218,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   sync(); target(true);
   requestAnimationFrame((n) => { last = n; frame(n); });
 
-  window.__orb = { P, step, sync, rigs, splashes, grabs, pulls, setFakeHands: (d) => { detections = d; } };
+  window.__orb = { P, step, sync, rigs, splashes, grabs, pulls, split, getSize: () => sizeMul, setFakeHands: (d) => { detections = d; } };
 })();
 </script>
 </body>
