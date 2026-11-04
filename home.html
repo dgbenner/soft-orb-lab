@@ -9,26 +9,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Noto+Sans:wght@400;500;600&display=swap">
 <style>
-:root { --page: #edeef0; --ink: #222a31; --muted: #5d6874; }
+:root { --page: #edeef0; --ink: #222a31; --muted: #5d6874; --gap: 64px; }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { background: var(--page); color: var(--ink); font-family: "Noto Sans", system-ui, sans-serif; font-size: 14px; line-height: 1.45; }
 #bg { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 0; }
-.page { position: relative; z-index: 1; max-width: 1354px; margin: 0 auto; padding: 22px 16px 90px; }
+.page { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 22px clamp(28px, 4vw, 56px) 90px; }
 
-.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; font-size: 12px; color: var(--muted); }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 40px; font-size: 12px; color: var(--muted); }
 .topbar a { color: var(--muted); text-decoration: none; border-bottom: 1px solid rgba(0, 0, 0, 0.15); }
 .topbar a:hover { color: var(--ink); }
 
 /* The grid mirrors the danbenner.com homepage */
-.stack { display: grid; gap: 34px; }
-.r1 { display: grid; grid-template-columns: 316fr 1038fr; gap: 30px; }
-.quad { display: grid; gap: 34px; }
-.quad-a { display: grid; grid-template-columns: 575fr 402fr; gap: 30px; }
-.quad-b { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px; }
-.r5 { display: grid; grid-template-columns: 547fr 777fr; gap: 30px; }
-.r5-right { display: grid; gap: 34px; }
+.stack { display: grid; gap: var(--gap); }
+.r1 { display: grid; grid-template-columns: 316fr 1038fr; gap: var(--gap); }
+.quad { display: grid; gap: var(--gap); }
+.quad-a { display: grid; grid-template-columns: 575fr 402fr; gap: var(--gap); }
+.quad-b { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+.r5 { display: grid; grid-template-columns: 547fr 777fr; gap: var(--gap); }
+.r5-right { display: grid; gap: var(--gap); }
 @media (max-width: 1000px) {
   .r1, .quad-a, .quad-b, .three, .r5 { grid-template-columns: minmax(0, 1fr); }
 }
@@ -143,7 +143,7 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
 
   <main class="stack">
     <section class="r1">
-      <article class="orb tall dark intro" data-pal="#2a3036,#3b3446,#c48a5f,#3aa86a">
+      <article class="orb tall dark intro" data-pal="#3b2bd6,#6124c9,#ff9a3d">
         <h2>Bridging AI/ML complexity with human needs.</h2>
         <ul class="specialties">
           <li>AI Building</li><li>Product Design</li><li>Innovation R&amp;D</li><li>Product Strategy</li>
@@ -158,12 +158,12 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
 
       <div class="quad">
         <div class="quad-a">
-          <article class="orb light" data-pal="#9fe3e8,#c8e9cc,#f3d36b,#e9b38a">
+          <article class="orb light" data-pal="#5fe3ea,#7defc0,#ffd83d">
             <h2>AI triage, shipped at enterprise scale</h2>
             <a class="cta" href="https://danbenner.com/bestbuy.html">Best Buy Self-Diagnosis →</a>
             <div class="tags"><span>Conversational Design</span><span>Machine Learning</span><span>Automated Handling</span></div>
           </article>
-          <article class="orb dark" data-pal="#232327,#2b3a31,#2f8f5a,#4f5966" data-video="testbench_placeholder">
+          <article class="orb dark" data-pal="#0d8a57,#0b7d78,#ffc53d" data-video="testbench_placeholder">
             <h2>See how your AI actually decides</h2>
             <div class="ctas">
               <a class="cta" href="https://healthbot-testbench.vercel.app/">Try AI Test Bench →</a>
@@ -173,12 +173,12 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
           </article>
         </div>
         <div class="quad-b">
-          <article class="orb dark" data-pal="#4a3a2e,#7e6a55,#c9a77e,#1f1716" data-video="stealth_loop">
+          <article class="orb dark" data-pal="#b4541a,#c0391f,#25c6e8" data-video="stealth_loop">
             <h2>An AI agent that listens past what people say</h2>
             <a class="cta" href="https://danbenner.com/stealth.html">Full Case Study →</a>
             <div class="tags"><span>Conversational Design</span><span>Sentiment Analysis</span><span>Model Definition</span></div>
           </article>
-          <article class="orb light" data-pal="#b6d7c5,#9cc8b3,#cfe8ef,#2c5a66">
+          <article class="orb light" data-pal="#7fe0a8,#a4e86e,#ff6fa8">
             <h2>An AI roadmap that pays for itself in data</h2>
             <div class="ctas"><a class="cta" href="https://danbenner.com/files/Vetavize-AI-Strategy.pdf">AI Strategy.pdf</a></div>
             <div class="tags"><span>AI Roadmapping</span><span>AI + Systems Strategy</span><span>Feedback Architecture</span></div>
@@ -188,24 +188,24 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
     </section>
 
     <section class="three">
-      <article class="orb dark" data-pal="#1d2a2e,#3e5559,#8a96a0,#e2bd3f" data-video="ey_29s">
+      <article class="orb dark" data-pal="#0b7f86,#0a8a6c,#ffcf33" data-video="ey_29s">
         <h2>A 350,000-person company that didn't understand its own front line</h2>
         <a class="cta" href="https://danbenner.com/ey.html">View EY Project →</a>
         <div class="tags"><span>Organizational Strategy</span><span>Discovery</span><span>Behavioral Research</span></div>
       </article>
-      <article class="orb dark" data-pal="#1255b1,#389edb,#0f3150,#7fd0ff" data-video="is_20s">
+      <article class="orb dark" data-pal="#0f63d6,#0f86d6,#ff7a45" data-video="is_20s">
         <h2>A robotic surgery training platform surgeons worked around</h2>
         <a class="cta" href="https://danbenner.com/surgical.html">Intuitive Surgical →</a>
         <div class="tags"><span>Strategy</span><span>Discovery</span><span>Product Roadmapping</span></div>
       </article>
-      <article class="orb dark" data-pal="#547cad,#7d86a5,#c7a28c,#2f3a52">
+      <article class="orb dark" data-pal="#4c6fe0,#6a5be0,#ffb347">
         <h2>The sales an autonomous delivery company didn't know it was losing</h2>
         <a class="cta" href="https://danbenner.com/droneup.html">DroneUp + Walmart →</a>
         <div class="tags"><span>Growth</span><span>Product Ownership</span><span>Research Ops</span></div>
       </article>
     </section>
 
-    <article class="orb short light" data-pal="#ffffff,#e4f1e2,#dde9f4,#f3e8dc">
+    <article class="orb short light" data-pal="#f4fbff,#e2f3ff,#ffc23d">
       <h3>Health Care</h3>
       <div class="logos">
         <img src="https://assets.danbenner.com/img/00_home_images/industry%20experience%20%20logos/abbott.svg" alt="Abbott">
@@ -219,17 +219,17 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
     </article>
 
     <section class="three">
-      <article class="orb dark" data-pal="#050606,#16201a,#285333,#3c7a4b" data-video="nagios_bg">
+      <article class="orb dark" data-pal="#1b2fb0,#3a22b8,#ffd166" data-video="nagios_bg">
         <h2>Easier for newcomers, unchanged for experts</h2>
         <a class="cta" href="https://danbenner.com/nagios.html">See Nagios Project →</a>
         <div class="tags"><span>Information Architecture</span><span>Research</span></div>
       </article>
-      <article class="orb light" data-pal="#acd89d,#78aa5f,#d2ecc6,#3b693a">
+      <article class="orb light" data-pal="#a8e05f,#d4e84a,#8a5cff">
         <h2>Intranet strategy, handed to a team who could run it</h2>
         <a class="cta" href="https://danbenner.com/chs.html">See CHS Discovery →</a>
         <div class="tags"><span>Strategy</span><span>Discovery</span></div>
       </article>
-      <article class="orb dark" data-pal="#0c0d1a,#2b3350,#8a6f6a,#3e4a6b" data-video="kudo_29s">
+      <article class="orb dark" data-pal="#2b45c2,#2a6fc0,#ff5d5d" data-video="kudo_29s">
         <h2>AI that preps interpreters, tested with interpreters</h2>
         <a class="cta" href="https://danbenner.com/kudo.html">See KUDO Project →</a>
         <div class="tags"><span>Natural Language Processing</span><span>Research Ops</span></div>
@@ -237,7 +237,7 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
     </section>
 
     <section class="r5">
-      <article class="orb testi light" data-pal="#ffffff,#eef0f4,#f5ece5,#e5eef5">
+      <article class="orb testi light" data-pal="#e6d0ff,#f5cdee,#2ad4c0">
         <h3>Testimonials</h3>
         <p class="quote" id="quote"></p>
         <div class="who" id="who"></div>
@@ -247,12 +247,12 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
         </div>
       </article>
       <div class="r5-right">
-        <article class="orb short dark" data-pal="#073050,#07599b,#2a7fa8,#e3a14a">
+        <article class="orb short dark" data-pal="#0779a8,#0a7f9c,#ff9d2e">
           <h2>The checklist between a rig and the coastline</h2>
           <a class="cta" href="https://danbenner.com/bp.html">View BP Blueprinting Project →</a>
           <div class="tags"><span>Systems Thinking</span><span>Service Design</span></div>
         </article>
-        <article class="orb short dark" data-pal="#011316,#011e80,#336fe9,#7fc4ff" data-video="ai_bg-v5">
+        <article class="orb short dark" data-pal="#3a2fe0,#1c52e8,#ff5fa2" data-video="ai_bg-v5">
           <h2>Experimental work with AI</h2>
           <a class="cta" href="https://danbenner.com/ai.html">See Prototypes →</a>
           <div class="tags"><span>AI Building</span><span>Rapid Prototyping</span></div>
@@ -260,7 +260,7 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
       </div>
     </section>
 
-    <article class="orb mid light" data-pal="#ffffff,#f1eff6,#ece6f6,#e6f2ec">
+    <article class="orb mid light" data-pal="#f8f6ff,#ece7ff,#39d98a">
       <div class="cc">
         <div>
           <h3>Certifications</h3>
@@ -295,7 +295,9 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
 
 <button type="button" class="tune-btn" id="tune-btn" aria-expanded="false" aria-controls="tune">Tune</button>
 <div class="tune" id="tune" hidden role="region" aria-label="Tune the orbs">
-  <label><span class="top">Swell <output id="o-swell"></output></span><input type="range" data-k="swell" min="0" max="140" step="1"></label>
+  <label><span class="top">Space between cards <output id="o-space"></output></span><input type="range" data-k="space" min="24" max="120" step="2"></label>
+  <label><span class="top">Swell at rest <output id="o-swell"></output></span><input type="range" data-k="swell" min="0" max="80" step="1"></label>
+  <label><span class="top">Reach when engaged <output id="o-reach"></output></span><input type="range" data-k="reach" min="0" max="180" step="2"></label>
   <label><span class="top">Pace <output id="o-pace"></output></span><input type="range" data-k="pace" min="0.1" max="1.5" step="0.05"></label>
   <label><span class="top">Edge wobble <output id="o-flex"></output></span><input type="range" data-k="flex" min="0" max="30" step="1"></label>
   <label><span class="top">Video strength <output id="o-video"></output></span><input type="range" data-k="video" min="0" max="1" step="0.05"></label>

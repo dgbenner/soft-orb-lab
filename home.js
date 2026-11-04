@@ -1,13 +1,14 @@
 // Orb Home renderer. Three passes per frame:
 //   1. background: the homepage grey with pastel lights drifting through it
-//   2. one pass per visible card: a loose, flexing orb in the card's colors, or its video, drawn
-//      on a quad that extends well past the card so lobes can bleed into neighboring areas
+//   2. one pass per visible card: a soft orb in the card's colors, or its video, drawn on a quad that
+//      extends well past the card. At rest the orbs stay apart; an engaged orb reaches over its
+//      neighbors, so it is drawn a second time on top, faded in, which avoids any pop in the stacking
 //   3. click splashes over everything
 (() => {
-  const DEFAULTS = { flex: 10, swell: 60, pace: 0.45, radius: 30, lean: 70, glow: 0.8, rim: 0.5, drift: 1, splash: 1, video: 0.85 };
+  const DEFAULTS = { flex: 10, swell: 16, reach: 46, space: 64, pace: 0.45, radius: 30, lean: 36, glow: 0.8, rim: 0.5, drift: 1, splash: 1, video: 0.85 };
   const T = Object.assign({}, DEFAULTS);
-  try { const s = JSON.parse(localStorage.getItem('orb-home:v3') || 'null'); if (s) for (const k in DEFAULTS) if (typeof s[k] === 'number') T[k] = s[k]; } catch (e) {}
-  const save = () => { try { localStorage.setItem('orb-home:v3', JSON.stringify(T)); } catch (e) {} };
+  try { const s = JSON.parse(localStorage.getItem('orb-home:v4') || 'null'); if (s) for (const k in DEFAULTS) if (typeof s[k] === 'number') T[k] = s[k]; } catch (e) {}
+  const save = () => { try { localStorage.setItem('orb-home:v4', JSON.stringify(T)); } catch (e) {} };
   const rmq = matchMedia('(prefers-reduced-motion: reduce)');
 
   // ---------- colors ----------
@@ -62,7 +63,7 @@
     }`, ['uRes', 'uDpr', 'uT', 'uBase', 'uCol', 'uLight', 'uCursor']);
 
   // 2. One orb. The quad covers the card plus a wide margin; output is premultiplied for blending.
-  const MARGIN = 200;
+  const MARGIN = 280;
   const ORB = program(`
     attribute vec2 a; uniform vec4 uBox; uniform vec2 uView; varying vec2 vP;
     void main() {
@@ -72,9 +73,9 @@
     varying vec2 vP;
     uniform vec4 uRect;              // center, half size (CSS px, y down)
     uniform vec4 uMeta;              // corner radius, hover, seed, video strength (0 = none)
-    uniform vec3 uPal[3];            // dominant, accent, accent
+    uniform vec3 uPal[3];            // main, its close neighbor, contrast highlight
     uniform vec3 uCursor;
-    uniform float uT, uFlex, uSwell, uLean, uGlow, uRim, uVidAspect;
+    uniform float uT, uFlex, uSwell, uReach, uLean, uGlow, uRim, uVidAspect, uFade;
     uniform sampler2D uVid;
 
     float sdRoundBox(vec2 q, vec2 b, float r) { vec2 d = abs(q) - b + r; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r; }
@@ -99,6 +100,9 @@
       float side = dot(q / (length(q) + 1.0), leanDir);
       d -= uSwell * breathe * (0.75 + 0.45 * side);
 
+      // Engaged: the whole orb grows out over the gap and onto its neighbors.
+      d -= uReach * hov * (0.7 + 0.3 * breathe);
+
       // Hover: the orb slowly reaches toward the pointer.
       vec2 cq = uCursor.xy - uRect.xy;
       vec2 dq = q - cq;
@@ -107,14 +111,15 @@
 
       float inside = 1.0 - smoothstep(-3.0, 3.0, d);
 
-      // Inside color: the dominant color fills the body; two accents drift through it as smaller pools.
-      vec3 ic = uPal[0]; 
-      for (int j = 1; j < 3; j++) {
-        float fj = float(j);
-        vec2 L = vec2(sin(t * (0.19 + 0.05 * fj) + s + fj * 1.7), cos(t * (0.15 + 0.06 * fj) + s * 1.3 + fj * 2.1)) * hs * 0.75;
-        float pool = exp(-dot(q - L, q - L) / (2.0 * pow(m * 0.55, 2.0)));
-        ic = mix(ic, uPal[j], pool * 0.8);
-      }
+      // Inside color: the two close colors melt into each other across the body...
+      vec2 nearAt = vec2(sin(t * 0.24 + s + 1.7), cos(t * 0.21 + s * 1.3 + 2.1)) * hs * 0.7;
+      vec2 nearD = (q - nearAt) / hs;
+      vec3 ic = mix(uPal[0], uPal[1], exp(-dot(nearD, nearD) / 0.9) * 0.95);
+      // ...and the contrast color is one highlight, kept toward the right side, away from the text.
+      vec2 hlAt = vec2(0.66 + 0.26 * sin(t * 0.17 + s), 0.7 * cos(t * 0.13 + s * 1.3)) * hs;
+      float hlSize = max(m * 0.42, 72.0) * (1.0 + 0.35 * hov);
+      float hl = exp(-dot(q - hlAt, q - hlAt) / (2.0 * hlSize * hlSize));
+      ic = mix(ic, uPal[2], hl * 0.92);
 
       // Video: fills the body and warps along with it.
       vec3 body = ic;
@@ -130,9 +135,15 @@
         vc = pow(vc, vec3(2.2));
         float edge = smoothstep(-90.0, 0.0, d);       // fade into the card's colors toward the edge
         body = mix(vc, ic, clamp(1.0 - uMeta.w + edge * 0.55, 0.0, 1.0));
+        // Past the picture's own edge the orb is all color, so a grown orb never smears the video.
+        float pic = 1.0 - smoothstep(0.40, 0.5, max(abs(uv.x), abs(uv.y)));
+        body = mix(ic, body, pic);
+        body = mix(body, uPal[2], hl * 0.45);
       }
 
-      body *= (0.88 + 0.12 * smoothstep(-70.0, 0.0, d)) * (1.0 + 0.22 * hov * near);
+      // A slight darkening toward the center, skipped on near-white cards so logos sit cleanly on them.
+      float pale = smoothstep(0.65, 0.9, min(uPal[0].r, min(uPal[0].g, uPal[0].b)));
+      body *= mix(0.88 + 0.12 * smoothstep(-70.0, 0.0, d), 1.0, pale) * (1.0 + 0.22 * hov * near);
       float rim = exp(-pow(min(d, 0.0) / 13.0, 2.0)) * inside;
       body += ic * rim * uRim * 0.6 + vec3(rim * uRim * 0.07);
 
@@ -147,8 +158,8 @@
 
       vec3 outRgb = toGamma(body) * inside + toGamma(ic) * halo;
       float outA = max(inside, halo + shade);
-      gl_FragColor = vec4(outRgb, outA) * border;
-    }`, ['uBox', 'uView', 'uRect', 'uMeta', 'uPal', 'uCursor', 'uT', 'uFlex', 'uSwell', 'uLean', 'uGlow', 'uRim', 'uVidAspect', 'uVid']);
+      gl_FragColor = vec4(outRgb, outA) * border * uFade;
+    }`, ['uBox', 'uView', 'uRect', 'uMeta', 'uPal', 'uCursor', 'uT', 'uFlex', 'uSwell', 'uReach', 'uLean', 'uGlow', 'uRim', 'uVidAspect', 'uVid', 'uFade']);
 
   // 3. Splashes
   const SPL = program(FULL_VS, COMMON + `
@@ -191,20 +202,10 @@
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-  // Three colors per card: the first listed color is dominant, plus the two others that differ most from it.
-  function threeColors(hexes) {
-    const rgb = hexes.map(hexToRgb), dom = rgb[0];
-    const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-    const rest = hexes.slice(1).map((h, i) => ({ h, d: dist(rgb[i + 1], dom) })).sort((a, b) => b.d - a.d);
-    return [hexes[0], rest[0].h, (rest[1] || rest[0]).h];
-  }
-  const sampler = document.createElement('canvas');
-  sampler.width = 16; sampler.height = 9;
-  const sctx = sampler.getContext('2d', { willReadFrequently: true });
-
+  // Three colors per card, listed in data-pal: main, its close neighbor, contrast highlight.
   const cards = [...document.querySelectorAll('.orb')].map((el, i) => {
-    const hex = threeColors(el.dataset.pal.split(',').map((h) => h.trim()));
-    const c = { el, hex, pal: hex.map((h) => toLin(hexToRgb(h))), seed: (i * 0.6180339) % 1, hover: 0, splashTurn: 0, vid: null, lastSample: 0 };
+    const hex = el.dataset.pal.split(',').map((h) => h.trim());
+    const c = { el, hex, pal: hex.map((h) => toLin(hexToRgb(h))), seed: (i * 0.6180339) % 1, hover: 0, engaged: false, onScreen: false, hasVid: false, vid: null };
     if (el.dataset.video) {
       const v = document.createElement('video');
       Object.assign(v, { muted: true, loop: true, playsInline: true, preload: 'auto', src: `media/home/${el.dataset.video}.mp4` });
@@ -243,18 +244,6 @@
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, V.v);
       }
       V.ready = true;
-      // Every half second, the video's average color becomes this card's dominant color (eased).
-      const now = performance.now();
-      if (now - c.lastSample > 500) {
-        c.lastSample = now;
-        sctx.drawImage(V.v, 0, 0, 16, 9);
-        const px = sctx.getImageData(0, 0, 16, 9).data;
-        let rr = 0, gg = 0, bb = 0;
-        for (let k = 0; k < px.length; k += 4) { rr += px[k]; gg += px[k + 1]; bb += px[k + 2]; }
-        const n = px.length / 4;
-        c.vidDom = toLin([rr / n / 255, gg / n / 255, bb / n / 255]);
-      }
-      if (c.vidDom) c.pal[0] = c.pal[0].map((v, k) => v + (c.vidDom[k] - v) * 0.04);
     } catch (e) {
       V.broken = true;   // e.g. opened from a file:// URL, where the browser won't share video pixels
       console.warn('Video unavailable for this card; showing its colors instead.', e.message);
@@ -284,9 +273,9 @@
     ptr.x = e.clientX; ptr.y = e.clientY; ptr.inside = true;
     if (e.target.closest('a, button, input, .tune')) return;
     const card = cards.find((c) => c.el.contains(e.target));
-    const hex = card ? card.hex[1 + (card.splashTurn++ % 2)] : BG_HEX[bgTurn++ % BG_HEX.length];
-    const [h, s, l] = rgbToHsl(hexToRgb(hex));
-    const col = toLin(hslToRgb([h + (card ? 0.33 : 0), Math.min(1, s * 1.15 + 0.15), Math.min(0.7, Math.max(0.35, l))]));
+    // Inside a card a click splashes that card's highlight color.
+    const [h, s, l] = rgbToHsl(hexToRgb(card ? card.hex[2] : BG_HEX[bgTurn++ % BG_HEX.length]));
+    const col = toLin(hslToRgb(card ? [h, s, l] : [h, Math.min(1, s * 1.15 + 0.15), Math.min(0.7, Math.max(0.35, l))]));
     splashes[splashNext] = { x: e.pageX, y: e.pageY, t0: performance.now(), col, r: (card ? 170 : 240) * T.splash };
     splashNext = (splashNext + 1) % splashes.length;
   });
@@ -295,6 +284,22 @@
   const bgLights = new Float32Array(8), palBuf = new Float32Array(9);
   const splashBuf = new Float32Array(32), splashColBuf = new Float32Array(24);
   let t = 0, last = performance.now();
+  // Cards currently lifted above the others. Each engagement adds a new layer that fades in on top, so
+  // the stacking order never visibly jumps; a layer fades away after its card is let go.
+  let layers = [];
+  function drawOrb(c, r, fade, glow) {
+    const hw = r.width / 2, hh = r.height / 2;
+    gl.bindTexture(gl.TEXTURE_2D, c.hasVid ? c.vid.tex : blank);
+    for (let j = 0; j < 3; j++) palBuf.set(c.pal[j], j * 3);
+    gl.uniform4f(ORB.u.uBox, r.left + hw, r.top + hh, hw + MARGIN, hh + MARGIN);
+    gl.uniform4f(ORB.u.uRect, r.left + hw, r.top + hh, hw, hh);
+    gl.uniform4f(ORB.u.uMeta, Math.min(T.radius, hw, hh), c.hover, c.seed, c.hasVid ? Math.max(0.001, T.video) : 0);
+    gl.uniform3fv(ORB.u.uPal, palBuf);
+    gl.uniform1f(ORB.u.uVidAspect, c.hasVid ? c.vid.aspect : 1);
+    gl.uniform1f(ORB.u.uFade, fade);
+    gl.uniform1f(ORB.u.uGlow, glow);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     t += dt * (rmq.matches ? 0.15 : 1) * T.drift * T.pace;
@@ -328,28 +333,32 @@
     gl.uniform1f(ORB.u.uT, t);
     gl.uniform1f(ORB.u.uFlex, rmq.matches ? T.flex * 0.4 : T.flex);
     gl.uniform1f(ORB.u.uSwell, rmq.matches ? T.swell * 0.3 : T.swell);
+    gl.uniform1f(ORB.u.uReach, rmq.matches ? T.reach * 0.4 : T.reach);
     gl.uniform1f(ORB.u.uLean, T.lean);
-    gl.uniform1f(ORB.u.uGlow, T.glow);
     gl.uniform1f(ORB.u.uRim, T.rim);
     gl.uniform1i(ORB.u.uVid, 0);
     gl.activeTexture(gl.TEXTURE0);
     for (const c of cards) {
       const r = c.el.getBoundingClientRect();
       const over = ptr.inside && ptr.x > r.left - 20 && ptr.x < r.right + 20 && ptr.y > r.top - 20 && ptr.y < r.bottom + 20;
+      const engaged = over || c.el.matches(':focus-within');
+      if (engaged && !c.engaged) layers.push({ c, a: 0 });
+      c.engaged = engaged;
       // Builds over a few seconds and lets go even more slowly.
-      c.hover += ((over ? 1 : 0) - c.hover) * Math.min(1, dt * (over ? 0.45 : 0.3));
-      if (r.bottom < -MARGIN || r.top > vh + MARGIN) continue;
-      const hw = r.width / 2, hh = r.height / 2;
-      const hasVid = c.vid && uploadVideo(c);
-      if (!hasVid) gl.bindTexture(gl.TEXTURE_2D, blank);
-      for (let j = 0; j < 3; j++) palBuf.set(c.pal[j], j * 3);
-      gl.uniform4f(ORB.u.uBox, r.left + hw, r.top + hh, hw + MARGIN, hh + MARGIN);
-      gl.uniform4f(ORB.u.uRect, r.left + hw, r.top + hh, hw, hh);
-      gl.uniform4f(ORB.u.uMeta, Math.min(T.radius, hw, hh), c.hover, c.seed, hasVid ? Math.max(0.001, T.video) : 0);
-      gl.uniform3fv(ORB.u.uPal, palBuf);
-      gl.uniform1f(ORB.u.uVidAspect, hasVid ? c.vid.aspect : 1);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      c.hover += ((engaged ? 1 : 0) - c.hover) * Math.min(1, dt * (engaged ? 0.45 : 0.3));
+      c.rect = r;
+      c.onScreen = !(r.bottom < -MARGIN || r.top > vh + MARGIN);
+      if (!c.onScreen) continue;
+      c.hasVid = !!c.vid && uploadVideo(c);
+      drawOrb(c, r, 1, T.glow);
     }
+    // Lifted cards, oldest first. Only the newest layer for a card still being engaged keeps rising.
+    layers = layers.filter((l, i) => {
+      const live = l.c.engaged && !layers.slice(i + 1).some((m) => m.c === l.c);
+      l.a = Math.max(0, Math.min(1, l.a + dt * (live ? 1.1 : -0.35)));
+      return live || l.a > 0;
+    });
+    for (const l of layers) if (l.a > 0 && l.c.onScreen) drawOrb(l.c, l.c.rect, l.a, T.glow * 0.5);
 
     // 3. splashes
     let any = false;
@@ -410,8 +419,8 @@
   // ---------- tune panel ----------
   const tune = document.getElementById('tune'), tuneBtn = document.getElementById('tune-btn');
   const inputs = [...tune.querySelectorAll('[data-k]')];
-  const fmt = (k, v) => (['flex', 'swell', 'radius', 'lean'].includes(k) ? v + ' px' : (+v).toFixed(2));
-  function syncTune() { inputs.forEach((i) => { i.value = T[i.dataset.k]; document.getElementById('o-' + i.dataset.k).textContent = fmt(i.dataset.k, T[i.dataset.k]); }); save(); }
+  const fmt = (k, v) => (['flex', 'swell', 'reach', 'space', 'radius', 'lean'].includes(k) ? v + ' px' : (+v).toFixed(2));
+  function syncTune() { inputs.forEach((i) => { i.value = T[i.dataset.k]; document.getElementById('o-' + i.dataset.k).textContent = fmt(i.dataset.k, T[i.dataset.k]); }); document.documentElement.style.setProperty('--gap', T.space + 'px'); save(); }
   inputs.forEach((i) => i.addEventListener('input', () => { T[i.dataset.k] = parseFloat(i.value); syncTune(); }));
   tuneBtn.addEventListener('click', () => { tune.hidden = !tune.hidden; tuneBtn.setAttribute('aria-expanded', String(!tune.hidden)); });
   document.getElementById('t-reset').addEventListener('click', () => { Object.assign(T, DEFAULTS); syncTune(); });
