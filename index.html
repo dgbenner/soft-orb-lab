@@ -43,7 +43,7 @@ header a { pointer-events: auto; color: inherit; }
 h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(18px, 2vw, 24px); letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
 .moves { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; font-size: 11.5px; line-height: 1.35; letter-spacing: -0.012em; color: #fff; }
 .moves li { display: flex; align-items: baseline; }
-.moves b { font-weight: 700; font-variant-caps: small-caps; letter-spacing: -0.005em; }
+.moves b { font-weight: 700; font-variant-caps: all-small-caps; letter-spacing: -0.005em; }
 .moves b::after { content: ""; display: inline-block; width: 12px; height: 1px; margin: 0 7px; vertical-align: 0.28em; background: rgba(255, 255, 255, 0.55); }
 .moves em { color: rgba(255, 255, 255, 0.8); }
 .home-link { font-size: 12.5px; margin-top: 4px; white-space: nowrap; }
@@ -425,7 +425,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     { id: 'sherbet', name: 'Sherbet',     colors: ['#06a088', '#3dffc9', '#ffa22e', '#ff7cbc', '#ffd12b'] },
     { id: 'violet',  name: 'Violet Hour', colors: ['#3a221f', '#a97cff', '#7d9fff', '#cf9fe0', '#8b5ad8'] },
     { id: 'glacier', name: 'Glacier',     colors: ['#4e8c7d', '#80f1c9', '#ffffff', '#6ec6ff', '#e0965c'] },
-    { id: 'inbetween', name: 'In Between Days', colors: ['#2747c0', '#f5286e', '#b4e82e', '#f4592f', '#16a8e3'] },
+    { id: 'inbetween', name: 'Inbetween Days', colors: ['#2747c0', '#f5286e', '#b4e82e', '#f4592f', '#16a8e3'] },
   ];
   let custom = PALETTES[0].colors.slice();
 
