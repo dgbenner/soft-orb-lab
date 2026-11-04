@@ -7,7 +7,7 @@
 <meta name="description" content="A soft, glowing orb that flexes and shifts color, with palettes to cycle through.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
 <style>
 :root {
   --bg: #0e1013;
@@ -41,8 +41,11 @@ header {
 }
 header a { pointer-events: auto; color: inherit; }
 h1 { font-family: var(--mono); font-weight: 500; font-size: clamp(18px, 2vw, 24px); letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
-.moves { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 1px; font-size: 13px; color: #fff; }
-.moves em { color: rgba(255, 255, 255, 0.78); margin-left: 4px; }
+.moves { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; font-size: 11.5px; line-height: 1.35; letter-spacing: -0.012em; color: #fff; }
+.moves li { display: flex; align-items: baseline; }
+.moves b { font-weight: 700; font-variant-caps: small-caps; letter-spacing: -0.005em; }
+.moves b::after { content: ""; display: inline-block; width: 12px; height: 1px; margin: 0 7px; vertical-align: 0.28em; background: rgba(255, 255, 255, 0.55); }
+.moves em { color: rgba(255, 255, 255, 0.8); }
 .home-link { font-size: 12.5px; margin-top: 4px; white-space: nowrap; }
 .frame-label {
   position: fixed; left: 20px; bottom: 16px; z-index: 3; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -112,16 +115,16 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
   <header>
     <h1>Needoh Lab</h1>
     <ul class="moves" aria-label="What you can do">
-      <li>Lean <em>point near the orb</em></li>
-      <li>Splash <em>click, or tap finger to thumb</em></li>
-      <li>Grab <em>press and drag, or pinch and hold</em></li>
-      <li>Stretch <em>pinch both sides, pull apart</em></li>
-      <li>Pull in two <em>keep pulling, past the stretch</em></li>
-      <li>Flick <em>let go mid-motion</em></li>
-      <li>Next palette <em>clap</em></li>
-      <li>Turn the color <em>tilt hand sideways, hold</em></li>
-      <li>Squeeze <em>fist near the orb</em></li>
-      <li>Swell <em>fingers spread, near the orb</em></li>
+      <li><b>Lean</b><em>point near the orb</em></li>
+      <li><b>Splash</b><em>click, or tap finger to thumb</em></li>
+      <li><b>Grab</b><em>press and drag, or pinch and hold</em></li>
+      <li><b>Stretch</b><em>pinch both sides, pull apart</em></li>
+      <li><b>Pull in two</b><em>keep pulling, past the stretch</em></li>
+      <li><b>Flick</b><em>let go mid-motion</em></li>
+      <li><b>Next palette</b><em>clap</em></li>
+      <li><b>Turn the color</b><em>tilt hand sideways, hold</em></li>
+      <li><b>Squeeze</b><em>fist near the orb</em></li>
+      <li><b>Swell</b><em>fingers spread, near the orb</em></li>
     </ul>
     <a class="home-link" href="home.html">See it as a whole homepage →</a>
   </header>
