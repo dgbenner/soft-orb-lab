@@ -5,7 +5,7 @@
 //      neighbors, so it is drawn a second time on top, faded in, which avoids any pop in the stacking
 //   3. click splashes over everything
 (() => {
-  const DEFAULTS = { flex: 10, swell: 16, reach: 46, space: 64, pace: 0.45, radius: 30, lean: 36, glow: 0.8, rim: 0.5, drift: 1, splash: 1, video: 0.85 };
+  const DEFAULTS = { flex: 10, swell: 16, reach: 46, space: 64, textmove: 2.6, textgrow: 4, pace: 0.45, radius: 30, lean: 36, glow: 0.8, rim: 0.5, drift: 1, splash: 1, video: 0.85 };
   const T = Object.assign({}, DEFAULTS);
   try { const s = JSON.parse(localStorage.getItem('orb-home:v4') || 'null'); if (s) for (const k in DEFAULTS) if (typeof s[k] === 'number') T[k] = s[k]; } catch (e) {}
   const save = () => { try { localStorage.setItem('orb-home:v4', JSON.stringify(T)); } catch (e) {} };
@@ -205,7 +205,7 @@
   // Three colors per card, listed in data-pal: main, its close neighbor, contrast highlight.
   const cards = [...document.querySelectorAll('.orb')].map((el, i) => {
     const hex = el.dataset.pal.split(',').map((h) => h.trim());
-    const c = { el, hex, pal: hex.map((h) => toLin(hexToRgb(h))), seed: (i * 0.6180339) % 1, hover: 0, engaged: false, onScreen: false, hasVid: false, vid: null };
+    const c = { el, hex, pal: hex.map((h) => toLin(hexToRgb(h))), seed: (i * 0.6180339) % 1, hover: 0, text: 0, textCss: '', engaged: false, onScreen: false, hasVid: false, vid: null };
     if (el.dataset.video) {
       const v = document.createElement('video');
       Object.assign(v, { muted: true, loop: true, playsInline: true, preload: 'auto', src: `media/home/${el.dataset.video}.mp4` });
@@ -346,6 +346,15 @@
       c.engaged = engaged;
       // Builds over a few seconds and lets go even more slowly.
       c.hover += ((engaged ? 1 : 0) - c.hover) * Math.min(1, dt * (engaged ? 0.45 : 0.3));
+      // The text follows more slowly than the orb, both coming in and letting go.
+      c.text += ((engaged ? 1 : 0) - c.text) * Math.min(1, dt * (engaged ? 0.3 : 0.2));
+      const textCss = (1 + (T.textmove - 1) * c.text).toFixed(3) + ' ' + (1 + T.textgrow / 100 * c.text).toFixed(4);
+      if (textCss !== c.textCss) {
+        c.textCss = textCss;
+        const [a, s] = textCss.split(' ');
+        c.el.style.setProperty('--a', a);
+        c.el.style.setProperty('--s', s);
+      }
       c.rect = r;
       c.onScreen = !(r.bottom < -MARGIN || r.top > vh + MARGIN);
       if (!c.onScreen) continue;
@@ -419,7 +428,7 @@
   // ---------- tune panel ----------
   const tune = document.getElementById('tune'), tuneBtn = document.getElementById('tune-btn');
   const inputs = [...tune.querySelectorAll('[data-k]')];
-  const fmt = (k, v) => (['flex', 'swell', 'reach', 'space', 'radius', 'lean'].includes(k) ? v + ' px' : (+v).toFixed(2));
+  const fmt = (k, v) => (k === 'textgrow' ? v + ' %' : k === 'textmove' ? (+v).toFixed(1) + '×' : ['flex', 'swell', 'reach', 'space', 'radius', 'lean'].includes(k) ? v + ' px' : (+v).toFixed(2));
   function syncTune() { inputs.forEach((i) => { i.value = T[i.dataset.k]; document.getElementById('o-' + i.dataset.k).textContent = fmt(i.dataset.k, T[i.dataset.k]); }); document.documentElement.style.setProperty('--gap', T.space + 'px'); save(); }
   inputs.forEach((i) => i.addEventListener('input', () => { T[i.dataset.k] = parseFloat(i.value); syncTune(); }));
   tuneBtn.addEventListener('click', () => { tune.hidden = !tune.hidden; tuneBtn.setAttribute('aria-expanded', String(!tune.hidden)); });

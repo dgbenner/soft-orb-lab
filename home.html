@@ -66,29 +66,35 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
 :focus-visible { outline: 2px solid #1f6feb; outline-offset: 3px; border-radius: 6px; }
 
 /* Text drift: headlines turn and float in 3D very slowly; buttons and tags rock almost imperceptibly.
-   Each card gets its own timing from the script, so nothing moves in step. */
-.orb { perspective: 900px; }
+   Each card gets its own timing from the script, so nothing moves in step. On hover the script slowly
+   raises --a (how far everything moves) and --s (a slight scale), a little behind the orb itself. */
+.orb { perspective: 900px; --a: 1; --s: 1; }
+.orb h2, .orb h3, .orb .quote { scale: var(--s); }
+.orb h3 { width: fit-content; }
+.tags { transform-origin: 0 100%; scale: var(--s); }
+.ctas, .orb > .cta { transform-origin: 0 50%; scale: var(--s); }
 .orb h2, .orb h3, .orb .quote {
   transform-origin: 30% 50%; will-change: transform;
   animation: drift var(--dur, 46s) ease-in-out var(--del, 0s) infinite alternate;
 }
 @keyframes drift {
   0%   { transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
-  25%  { transform: translate3d(4px, -3px, 10px) rotateX(3deg) rotateY(-4deg) rotateZ(-0.8deg); }
-  50%  { transform: translate3d(-3px, 2px, -6px) rotateX(-2deg) rotateY(3.5deg) rotateZ(0.6deg); }
-  75%  { transform: translate3d(2px, 3px, 8px) rotateX(1.5deg) rotateY(2deg) rotateZ(-0.4deg); }
-  100% { transform: translate3d(-2px, -2px, -3px) rotateX(-1deg) rotateY(-2.5deg) rotateZ(0.7deg); }
+  25%  { transform: translate3d(calc(4px * var(--a)), calc(-3px * var(--a)), calc(10px * var(--a))) rotateX(calc(3deg * var(--a))) rotateY(calc(-4deg * var(--a))) rotateZ(calc(-0.8deg * var(--a))); }
+  50%  { transform: translate3d(calc(-3px * var(--a)), calc(2px * var(--a)), calc(-6px * var(--a))) rotateX(calc(-2deg * var(--a))) rotateY(calc(3.5deg * var(--a))) rotateZ(calc(0.6deg * var(--a))); }
+  75%  { transform: translate3d(calc(2px * var(--a)), calc(3px * var(--a)), calc(8px * var(--a))) rotateX(calc(1.5deg * var(--a))) rotateY(calc(2deg * var(--a))) rotateZ(calc(-0.4deg * var(--a))); }
+  100% { transform: translate3d(calc(-2px * var(--a)), calc(-2px * var(--a)), calc(-3px * var(--a))) rotateX(calc(-1deg * var(--a))) rotateY(calc(-2.5deg * var(--a))) rotateZ(calc(0.7deg * var(--a))); }
 }
 .cta, .tags span, .quote-nav button, .pills a, .pills button {
   transform-origin: 50% 0; will-change: transform;
   animation: swing var(--swing, 7s) ease-in-out var(--sdel, 0s) infinite alternate;
 }
 @keyframes swing {
-  from { transform: rotate(-0.7deg) translateY(0); }
-  to   { transform: rotate(0.7deg) translateY(1px); }
+  from { transform: rotate(calc(-0.7deg * var(--a))) translateY(0); }
+  to   { transform: rotate(calc(0.7deg * var(--a))) translateY(calc(1px * var(--a))); }
 }
 @media (prefers-reduced-motion: reduce) {
   .orb h2, .orb h3, .orb .quote, .cta, .tags span, .quote-nav button, .pills a, .pills button { animation: none; }
+  .orb h2, .orb h3, .orb .quote, .tags, .ctas, .orb > .cta { scale: none; }
 }
 
 /* Intro card */
@@ -300,6 +306,8 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
   <label><span class="top">Reach when engaged <output id="o-reach"></output></span><input type="range" data-k="reach" min="0" max="180" step="2"></label>
   <label><span class="top">Pace <output id="o-pace"></output></span><input type="range" data-k="pace" min="0.1" max="1.5" step="0.05"></label>
   <label><span class="top">Edge wobble <output id="o-flex"></output></span><input type="range" data-k="flex" min="0" max="30" step="1"></label>
+  <label><span class="top">Text motion on hover <output id="o-textmove"></output></span><input type="range" data-k="textmove" min="1" max="5" step="0.1"></label>
+  <label><span class="top">Text scale on hover <output id="o-textgrow"></output></span><input type="range" data-k="textgrow" min="0" max="12" step="0.5"></label>
   <label><span class="top">Video strength <output id="o-video"></output></span><input type="range" data-k="video" min="0" max="1" step="0.05"></label>
   <label><span class="top">Corner roundness <output id="o-radius"></output></span><input type="range" data-k="radius" min="10" max="70" step="1"></label>
   <label><span class="top">Lean toward cursor <output id="o-lean"></output></span><input type="range" data-k="lean" min="0" max="140" step="1"></label>
