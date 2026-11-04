@@ -134,6 +134,10 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
           <button type="button" class="btn" id="cam-btn" aria-pressed="false">Use camera</button>
           <span class="status" id="cam-status" role="status"></span>
         </div>
+        <div class="ctl" id="cam-pick" hidden>
+          <label for="cam-select" class="ctl-top">Camera</label>
+          <select id="cam-select"></select>
+        </div>
       </div>
 
       <details class="sec" data-sec="palette">
@@ -662,15 +666,65 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     camBtn.setAttribute('aria-pressed', String(on));
     preview.hidden = !(on && P.preview);
   }
+  // The browser may remember one camera and stop asking, so the page has its own menu and remembers the pick.
+  const CAM_KEY = 'soft-orb-lab:camera', BUILT_IN = /facetime|built.?in|macbook|integrated|virtual|obs\b/i;
+  const camPick = $('#cam-pick'), camSelect = $('#cam-select');
+  let cameras = [];
+  const savedCamera = () => { try { return localStorage.getItem(CAM_KEY) || ''; } catch (e) { return ''; } };
+  const currentCameraId = () => camStream?.getVideoTracks()[0]?.getSettings().deviceId || '';
+  async function openCamera(deviceId) {
+    const size = { width: { ideal: 640 }, height: { ideal: 480 } };
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: deviceId ? { ...size, deviceId: { exact: deviceId } } : size, audio: false });
+    } catch (err) {
+      if (!deviceId || !['OverconstrainedError', 'NotFoundError'].includes(err?.name)) throw err;
+      stream = await navigator.mediaDevices.getUserMedia({ video: size, audio: false });   // the saved camera is unplugged
+    }
+    if (camStream) camStream.getTracks().forEach((t) => t.stop());
+    camStream = stream;
+    camVideo.srcObject = stream;
+    lastVideoTime = -1;
+    await camVideo.play();
+  }
+  function syncCameraMenu() {
+    camSelect.innerHTML = '';
+    cameras.forEach((c, i) => camSelect.add(new Option(c.label || `Camera ${i + 1}`, c.deviceId)));
+    camSelect.value = currentCameraId();
+    camPick.hidden = !(camStream && cameras.length > 1);
+  }
+  async function refreshCameras() {
+    cameras = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+    syncCameraMenu();
+  }
+  camSelect.addEventListener('change', async () => {
+    const id = camSelect.value;
+    try { localStorage.setItem(CAM_KEY, id); } catch (e) {}
+    camSelect.disabled = true;
+    try { await openCamera(id); } catch (err) { camStatus.textContent = cameraMessage(err); console.warn(err); }
+    camSelect.disabled = false;
+    syncCameraMenu();
+  });
+  navigator.mediaDevices?.addEventListener?.('devicechange', () => { if (camStream) refreshCameras(); });
+  const cameraMessage = (err) => (err?.name === 'NotAllowedError' ? 'Camera permission was blocked. Allow it in your browser to use hands.'
+    : err?.name === 'NotFoundError' ? 'No camera found.'
+    : err?.name === 'NotReadableError' ? 'That camera is busy. Close other apps using it and try again.'
+    : err?.message === 'nocamera' ? 'This browser can\u2019t use a camera on this page.'
+    : 'Couldn\u2019t start hand tracking. Check your connection and try again.');
   async function startCamera() {
     if (camBusy || camStream) return;
     camBusy = true; camBtn.disabled = true;
     try {
       camStatus.textContent = 'Asking for your camera\u2026';
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('nocamera');
-      camStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
-      camVideo.srcObject = camStream;
-      await camVideo.play();
+      await openCamera(savedCamera());
+      await refreshCameras();
+      // First time, with no camera picked yet: prefer an external one over the laptop's own.
+      if (!savedCamera()) {
+        const ext = cameras.find((c) => !BUILT_IN.test(c.label));
+        if (ext && ext.deviceId !== currentCameraId()) await openCamera(ext.deviceId);
+        syncCameraMenu();
+      }
       setCamUi();
       if (!landmarker) {
         camStatus.textContent = 'Loading hand tracking\u2026';
@@ -683,10 +737,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
       camStatus.textContent = 'Show your hands';
     } catch (err) {
       stopCamera();
-      camStatus.textContent = err?.name === 'NotAllowedError' ? 'Camera permission was blocked. Allow it in your browser to use hands.'
-        : err?.name === 'NotFoundError' ? 'No camera found.'
-        : err?.message === 'nocamera' ? 'This browser can\u2019t use a camera on this page.'
-        : 'Couldn\u2019t start hand tracking. Check your connection and try again.';
+      camStatus.textContent = cameraMessage(err);
       console.warn(err);
     }
     camBusy = false; camBtn.disabled = false;
@@ -695,6 +746,7 @@ select { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 8px; border
     if (camStream) camStream.getTracks().forEach((t) => t.stop());
     camStream = null; camVideo.srcObject = null; detections = []; lastVideoTime = -1;
     camStatus.textContent = '';
+    camPick.hidden = true;
     setCamUi();
   }
   camBtn.addEventListener('click', () => (camStream ? stopCamera() : startCamera()));
