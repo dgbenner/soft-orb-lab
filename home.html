@@ -37,8 +37,15 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
 .orb {
   position: relative; min-height: 280px; padding: 28px 30px 24px; border-radius: 24px;
   display: flex; flex-direction: column; gap: 12px; cursor: pointer; min-width: 0;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: pan-y;
 }
+body.dragging, body.dragging .orb { cursor: grabbing; }
+/* Opening a card: it comes forward and everything else steps out of the way */
+.orb.is-blown { z-index: 4; will-change: transform; }
+.orb, .topbar { transition: opacity 0.5s; }
+body.blowing .orb:not(.is-blown), body.blowing .topbar { opacity: 0; pointer-events: none; }
+.blown-hint { position: fixed; left: 50%; bottom: 20px; translate: -50% 0; z-index: 5; font-size: 12px; padding: 7px 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.82); color: var(--ink); backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+body.blowing .blown-hint { opacity: 1; transition: opacity 0.5s 1.6s; }
 .orb.tall { min-height: 595px; }
 .orb.short { min-height: 180px; }
 .orb.mid { min-height: 316px; }
@@ -127,7 +134,7 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
 
 /* Tune panel */
 .tune-btn { position: fixed; right: 18px; bottom: 18px; z-index: 5; font: 500 12px "Noto Sans", sans-serif; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(0, 0, 0, 0.12); background: rgba(255, 255, 255, 0.82); color: var(--ink); cursor: pointer; backdrop-filter: blur(8px); }
-.tune { position: fixed; right: 18px; bottom: 62px; z-index: 5; width: 260px; padding: 14px 16px; border-radius: 14px; background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); display: grid; gap: 10px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12); }
+.tune { position: fixed; right: 18px; bottom: 62px; z-index: 5; width: 260px; padding: 14px 16px; border-radius: 14px; background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); display: grid; gap: 10px; max-height: calc(100vh - 90px); overflow-y: auto; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12); }
 .tune[hidden] { display: none; }
 .tune label { display: grid; gap: 2px; font-size: 12px; }
 .tune .top { display: flex; justify-content: space-between; }
@@ -143,7 +150,7 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
 
 <div class="page">
   <div class="topbar">
-    <span>Experiment: the danbenner.com homepage, with every card as a soft orb. Hover to lean, click to splash color.</span>
+    <span>Experiment: the danbenner.com homepage, with every card as a soft orb. Hover to lean, drag to shape the goo, click to open a card.</span>
     <a href="index.html">Needoh Lab</a>
   </div>
 
@@ -299,6 +306,7 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
   </main>
 </div>
 
+<div class="blown-hint" aria-live="polite">Click anywhere or press Esc to go back</div>
 <button type="button" class="tune-btn" id="tune-btn" aria-expanded="false" aria-controls="tune">Tune</button>
 <div class="tune" id="tune" hidden role="region" aria-label="Tune the orbs">
   <label><span class="top">Space between cards <output id="o-space"></output></span><input type="range" data-k="space" min="24" max="120" step="2"></label>
@@ -308,6 +316,10 @@ body { background: var(--page); color: var(--ink); font-family: "Noto Sans", sys
   <label><span class="top">Edge wobble <output id="o-flex"></output></span><input type="range" data-k="flex" min="0" max="30" step="1"></label>
   <label><span class="top">Text motion on hover <output id="o-textmove"></output></span><input type="range" data-k="textmove" min="1" max="5" step="0.1"></label>
   <label><span class="top">Text scale on hover <output id="o-textgrow"></output></span><input type="range" data-k="textgrow" min="0" max="12" step="0.5"></label>
+  <label><span class="top">Hover pull <output id="o-hoverpull"></output></span><input type="range" data-k="hoverpull" min="0" max="80" step="1"></label>
+  <label><span class="top">Drag strength <output id="o-dragpull"></output></span><input type="range" data-k="dragpull" min="0.3" max="1.5" step="0.1"></label>
+  <label><span class="top">Shape memory <output id="o-memory"></output></span><input type="range" data-k="memory" min="2" max="120" step="1"></label>
+  <label><span class="top">Open time <output id="o-blowtime"></output></span><input type="range" data-k="blowtime" min="0.5" max="4" step="0.1"></label>
   <label><span class="top">Video strength <output id="o-video"></output></span><input type="range" data-k="video" min="0" max="1" step="0.05"></label>
   <label><span class="top">Corner roundness <output id="o-radius"></output></span><input type="range" data-k="radius" min="10" max="70" step="1"></label>
   <label><span class="top">Lean toward cursor <output id="o-lean"></output></span><input type="range" data-k="lean" min="0" max="140" step="1"></label>
