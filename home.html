@@ -79,7 +79,12 @@ body.blowing .blown-hint { opacity: 1; transition: opacity 0.5s 1.6s; }
 .orb h2, .orb h3, .orb .quote { scale: var(--s); }
 .orb h3 { width: fit-content; }
 .tags { transform-origin: 0 100%; scale: var(--s); }
-.ctas, .orb > .cta { transform-origin: 0 50%; scale: var(--s); }
+.ctas, .orb > .goo { transform-origin: 0 50%; scale: var(--s); }
+/* Pieces that bend with the goo; see bendContents in home.js */
+.word { display: inline-block; }
+.goo { display: flex; }
+.orb > .goo { align-self: flex-start; }
+.wordmark, .specialties li { width: fit-content; }
 .orb h2, .orb h3, .orb .quote {
   transform-origin: 30% 50%; will-change: transform;
   animation: drift var(--dur, 46s) ease-in-out var(--del, 0s) infinite alternate;
@@ -101,7 +106,7 @@ body.blowing .blown-hint { opacity: 1; transition: opacity 0.5s 1.6s; }
 }
 @media (prefers-reduced-motion: reduce) {
   .orb h2, .orb h3, .orb .quote, .cta, .tags span, .quote-nav button, .pills a, .pills button { animation: none; }
-  .orb h2, .orb h3, .orb .quote, .tags, .ctas, .orb > .cta { scale: none; }
+  .orb h2, .orb h3, .orb .quote, .tags, .ctas, .orb > .goo { scale: none; }
 }
 
 /* Intro card */

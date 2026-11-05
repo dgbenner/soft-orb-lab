@@ -347,6 +347,7 @@
   function openCard(c, x, y) {
     if (blownCard) return;
     measureBase(c);
+    c.pulls.forEach((p) => { p.fast = true; });   // any shape on the card melts away as it opens
     const b = c.base, L = b.l - scrollX, Tp = b.t - scrollY;
     // The side nearest the click goes first; the others follow late, which makes the odd proportions.
     const dist = [x - L, y - Tp, L + b.w - x, Tp + b.h - y];
@@ -394,13 +395,91 @@
   });
   addEventListener('resize', () => { if (blownCard) measureBase(blownCard); });
 
+  // ---------- the card's contents bend with the goo ----------
+  // Long text is split into words so a line curves across a pull. Anything with its own rocking motion
+  // gets a wrapper, which takes the bend while the element inside keeps rocking.
+  function splitWords(el) {
+    for (const node of [...el.childNodes]) {
+      if (node.nodeType !== 3) continue;
+      const frag = document.createDocumentFragment();
+      node.textContent.split(/(\s+)/).forEach((part) => {
+        if (!part) return;
+        if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(' ')); return; }
+        const w = document.createElement('span');
+        w.className = 'word';
+        w.textContent = part;
+        frag.appendChild(w);
+      });
+      el.replaceChild(frag, node);
+    }
+  }
+  function setWords(el, text) { el.textContent = text; splitWords(el); }
+  cards.forEach((c) => {
+    c.el.querySelectorAll('h2, h3, .quote, .who, .contact p').forEach(splitWords);
+    c.el.querySelectorAll('.cta, .tags span, .quote-nav button, .pills a, .pills button').forEach((el) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'goo';
+      el.replaceWith(wrap);
+      wrap.appendChild(el);
+    });
+    c.gooOn = false;
+    c.items = null;
+  });
+  const LOOSE_ITEMS = '.word, .goo, .wordmark, .specialties li, .logos img, .certs a';
+  // Where each piece sits in the page layout, ignoring every transform, measured from the card's center.
+  function measureItems(c) {
+    c.items = [...c.el.querySelectorAll(LOOSE_ITEMS)].map((el) => {
+      let x = 0, y = 0, e = el;
+      while (e && e !== c.el) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; }
+      return { el, x: x + el.offsetWidth / 2 - c.el.offsetWidth / 2, y: y + el.offsetHeight / 2 - c.el.offsetHeight / 2 };
+    });
+  }
+  const remeasure = () => cards.forEach((c) => { c.items = null; });
+  addEventListener('resize', remeasure);
+  document.fonts?.ready.then(remeasure);
+
+  const pullRadius = (p) => Math.max(p.r0, Math.hypot(p.dx, p.dy) * 1.25);
+  const bends = [];
+  function bendContents(c) {
+    bends.length = 0;
+    if (c.hoverR > 0) bends.push([c.hoverAt[0], c.hoverAt[1], c.hoverD[0], c.hoverD[1], c.hoverR]);
+    for (const p of c.pulls) bends.push([p.ax, p.ay, p.dx, p.dy, pullRadius(p)]);
+    if (!bends.length) {
+      if (c.gooOn) { c.items?.forEach((it) => { it.el.style.transform = ''; }); c.gooOn = false; }
+      return;
+    }
+    if (!c.items) measureItems(c);
+    c.gooOn = true;
+    for (const it of c.items) {
+      // The orb's shader asks "which point of the flat card lands here?" The text needs the reverse:
+      // where does this point of the flat card land? A few rounds of guessing converge on it.
+      let x = it.x, y = it.y;
+      for (let n = 0; n < 6; n++) {
+        let nx = it.x, ny = it.y;
+        for (const [bx, by, dx, dy, r] of bends) {
+          const w = Math.exp(-((x - bx) ** 2 + (y - by) ** 2) / (2 * r * r));
+          nx += dx * w; ny += dy * w;
+        }
+        x = nx; y = ny;
+      }
+      // How the bend stretches and turns the space right here, applied to the piece of text.
+      let a = 1, b = 0, cc = 0, d = 1;
+      for (const [bx, by, dx, dy, r] of bends) {
+        const rx = x - bx, ry = y - by, w = Math.exp(-(rx * rx + ry * ry) / (2 * r * r)) / (r * r);
+        a += dx * rx * w; cc += dx * ry * w; b += dy * rx * w; d += dy * ry * w;
+      }
+      const det = Math.max(a * d - b * cc, 0.15);
+      it.el.style.transform = `matrix(${(d / det).toFixed(3)}, ${(-b / det).toFixed(3)}, ${(-cc / det).toFixed(3)}, ${(a / det).toFixed(3)}, ${(x - it.x).toFixed(2)}, ${(y - it.y).toFixed(2)})`;
+    }
+  }
+
   // ---------- hover and drag, moved along once per frame ----------
   function updateGoo(c, r, dt) {
     const hw = r.width / 2, hh = r.height / 2, cx = r.left + hw, cy = r.top + hh;
     const rx = Math.max(-hw, Math.min(hw, ptr.x - cx)), ry = Math.max(-hh, Math.min(hh, ptr.y - cy));
     // Hover: nothing for the first few seconds, then the part of the edge nearest the mouse slowly follows it.
     c.dwell = c.engaged && !press ? c.dwell + dt : 0;
-    const wantPlay = c.dwell > 2.5 && !rmq.matches ? 1 : 0;
+    const wantPlay = c.dwell > 2.5 && !rmq.matches && c.blow <= 0 ? 1 : 0;
     c.play += (wantPlay - c.play) * Math.min(1, dt * (wantPlay ? 0.4 : 0.6));
     if (!c.slow) c.slow = [rx, ry];
     if (c.engaged) { c.slow[0] += (rx - c.slow[0]) * Math.min(1, dt * 1.6); c.slow[1] += (ry - c.slow[1]) * Math.min(1, dt * 1.6); }
@@ -458,7 +537,7 @@
     bumpBuf.set([c.hoverAt[0], c.hoverAt[1], c.hoverD[0], c.hoverD[1]], 0); bumpR[0] = c.hoverR;
     c.pulls.forEach((p, i) => {
       bumpBuf.set([p.ax, p.ay, p.dx, p.dy], (i + 1) * 4);
-      bumpR[i + 1] = Math.max(p.r0, Math.hypot(p.dx, p.dy) * 1.25);
+      bumpR[i + 1] = pullRadius(p);
     });
     // Mid-balloon, three big lumps push out around the edge, then settle back as it fills the screen.
     if (c.blow > 0 && !rmq.matches) {
@@ -535,6 +614,7 @@
         c.el.style.setProperty('--s', s);
       }
       updateGoo(c, r, dt);
+      if (r.bottom > -MARGIN_ACTIVE && r.top < vh + MARGIN_ACTIVE) bendContents(c);
       c.rect = r;
       c.onScreen = !(r.bottom < -MARGIN_ACTIVE || r.top > vh + MARGIN_ACTIVE);
       if (!c.onScreen) continue;
@@ -597,11 +677,11 @@
   function showQuote(i) {
     qi = (i + QUOTES.length) % QUOTES.length;
     quoteEl.style.opacity = whoEl.style.opacity = 0;
-    setTimeout(() => { quoteEl.textContent = '“' + QUOTES[qi][0] + '”'; whoEl.textContent = QUOTES[qi][1]; quoteEl.style.opacity = whoEl.style.opacity = ''; }, 250);
+    setTimeout(() => { setWords(quoteEl, '“' + QUOTES[qi][0] + '”'); setWords(whoEl, QUOTES[qi][1]); remeasure(); quoteEl.style.opacity = whoEl.style.opacity = ''; }, 250);
   }
   document.getElementById('q-next').addEventListener('click', () => showQuote(qi + 1));
   document.getElementById('q-prev').addEventListener('click', () => showQuote(qi - 1));
-  quoteEl.textContent = '“' + QUOTES[0][0] + '”'; whoEl.textContent = QUOTES[0][1];
+  setWords(quoteEl, '“' + QUOTES[0][0] + '”'); setWords(whoEl, QUOTES[0][1]);
   if (!rmq.matches) setInterval(() => showQuote(qi + 1), 7000);
 
   document.getElementById('copy-email').addEventListener('click', (e) => {
